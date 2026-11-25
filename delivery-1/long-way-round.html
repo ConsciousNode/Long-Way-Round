@@ -1,0 +1,2480 @@
+<!DOCTYPE html>
+<!--
+  =============================================================================
+  The Long Way Round: a balanced-ternary adder that takes every detour
+  ConsciousNode SoftWorks — Xinu Rules:
+    one HTML file, zero dependencies, no network, works offline, MIT licence.
+
+  INLINE: MIT License — ConsciousNode SoftWorks (original, authored here)
+  Copyright (c) 2026 ConsciousNode SoftWorks
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+  =============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Long Way Round — Balanced-Ternary Adder</title>
+<style>
+/* INLINE: styles — self-contained instrument bench CSS (authored for long-way-round.html, zero external fonts/CDNs) */
+:root {
+  --bg: #0b0f14;
+  --panel: #121922;
+  --panel-alt: #17212e;
+  --border: #253447;
+  --text: #e2e8f0;
+  --muted: #8b9db5;
+  --cyan: #22d3ee;
+  --amber: #f59e0b;
+  --emerald: #10b981;
+  --rose: #f43f5e;
+  --violet: #a78bfa;
+  --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--text);
+  font-family: var(--sans); line-height: 1.45;
+  min-height: 100vh;
+}
+header {
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #101720 0%, #0b0f14 100%);
+  padding: 18px 24px;
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;
+}
+.brand h1 {
+  margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em;
+  color: #f8fafc;
+}
+.brand p {
+  margin: 4px 0 0; font-size: 0.84rem; color: var(--muted);
+}
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge {
+  font-family: var(--mono); font-size: 0.72rem;
+  padding: 3px 8px; border-radius: 4px;
+  background: var(--panel-alt); border: 1px solid var(--border); color: var(--muted);
+}
+main {
+  max-width: 1380px; margin: 0 auto; padding: 20px 24px 48px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px;
+}
+.card-head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 12px;
+}
+.card-title {
+  font-size: 0.92rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--cyan); margin: 0;
+}
+.card-sub {
+  font-family: var(--mono); font-size: 0.76rem; color: var(--muted);
+}
+.controls-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px; align-items: stretch;
+}
+.keypad-box {
+  background: var(--panel-alt); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.kp-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.kp-label { font-weight: 600; font-size: 0.88rem; color: #f8fafc; }
+.kp-dec { font-family: var(--mono); font-size: 0.8rem; color: var(--amber); }
+.trit-display {
+  font-family: var(--mono); font-size: 1.45rem; font-weight: 700;
+  letter-spacing: 0.14em; text-align: right;
+  padding: 10px 12px; border-radius: 6px;
+  background: #080c11; border: 1px solid var(--border);
+  color: #f8fafc; min-height: 48px; overflow-x: auto;
+}
+.kp-buttons {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.kp-util {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+button {
+  font-family: var(--mono); font-size: 0.86rem; font-weight: 600;
+  border-radius: 6px; border: 1px solid var(--border);
+  background: #1a2534; color: var(--text);
+  padding: 9px 10px; cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.06s;
+}
+button:hover { background: #223146; border-color: #3b5370; }
+button:active { transform: translateY(1px); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-neg { color: var(--rose); border-color: rgba(244,63,94,0.35); }
+.btn-zero { color: var(--muted); }
+.btn-pos { color: var(--emerald); border-color: rgba(16,185,129,0.35); }
+.btn-util { font-size: 0.76rem; padding: 6px 8px; color: var(--muted); background: #121a24; }
+.action-box {
+  background: var(--panel-alt); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; display: flex; flex-direction: column;
+  justify-content: space-between; gap: 12px;
+}
+.param-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: 0.82rem; color: var(--muted);
+}
+.param-row input[type="range"] { flex: 1; accent-color: var(--cyan); }
+.param-row input[type="number"] {
+  width: 84px; background: #080c11; border: 1px solid var(--border);
+  color: var(--text); font-family: var(--mono); font-size: 0.82rem;
+  padding: 4px 8px; border-radius: 5px;
+}
+.param-val { font-family: var(--mono); color: var(--cyan); min-width: 52px; text-align: right; }
+.go-btn {
+  width: 100%; padding: 14px 16px; font-size: 1rem; font-family: var(--sans);
+  font-weight: 700; letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #0891b2 0%, #0284c7 100%);
+  color: #ffffff; border: 1px solid #38bdf8; border-radius: 8px;
+}
+.go-btn:hover { background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%); }
+.answer-banner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 16px; background: #080d13; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 18px;
+}
+.answer-label {
+  font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+}
+#final-answer {
+  font-family: var(--mono); font-size: 2rem; font-weight: 700;
+  letter-spacing: 0.14em; color: var(--emerald); min-height: 2.4rem;
+}
+.answer-meta {
+  font-family: var(--mono); font-size: 0.82rem; color: var(--muted); text-align: right;
+}
+.stages-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 16px;
+}
+.stage-canvas {
+  width: 100%; height: 190px; display: block;
+  background: #070b10; border: 1px solid var(--border); border-radius: 6px;
+}
+.stage-canvas.tall { height: 230px; }
+.stage-footer {
+  margin-top: 8px; display: flex; flex-wrap: wrap; justify-content: space-between;
+  gap: 8px; font-family: var(--mono); font-size: 0.75rem; color: var(--muted);
+}
+.pill {
+  display: inline-block; padding: 2px 7px; border-radius: 999px;
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+}
+.pill-ok { background: rgba(16,185,129,0.16); color: var(--emerald); border: 1px solid rgba(16,185,129,0.4); }
+.pill-bad { background: rgba(244,63,94,0.16); color: var(--rose); border: 1px solid rgba(244,63,94,0.4); }
+.pill-wait { background: rgba(139,157,181,0.14); color: var(--muted); border: 1px solid var(--border); }
+table {
+  width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.8rem;
+}
+th, td {
+  text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+th {
+  color: var(--muted); font-weight: 600; font-size: 0.74rem;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.sabotage-details summary {
+  cursor: pointer; font-family: var(--mono); font-size: 0.82rem;
+  color: var(--amber); user-select: none;
+}
+.sabotage-grid {
+  margin-top: 10px; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px;
+}
+.sab-item {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 0.76rem; color: var(--text);
+  background: var(--panel-alt); padding: 7px 10px; border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.preset-row { display: flex; flex-wrap: wrap; gap: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>The Long Way Round</h1>
+    <p>ConsciousNode SoftWorks &middot; Balanced-ternary addition across five honest physical media</p>
+  </div>
+  <div class="badge-row">
+    <span class="badge">Xinu Rules</span>
+    <span class="badge">Zero Dependencies</span>
+    <span class="badge">Offline</span>
+    <span class="badge">MIT Licence</span>
+  </div>
+</header>
+
+<main>
+  <!-- Input Keypads & Controls -->
+  <section class="card">
+    <div class="card-head">
+      <h2 class="card-title">Operands &amp; Instrument Controls</h2>
+      <div class="preset-row">
+        <button class="btn-util" id="preset-sample">Sample</button>
+        <button class="btn-util" id="preset-max">+9841 + +9841</button>
+        <button class="btn-util" id="preset-cancel">x + (&minus;x)</button>
+        <button class="btn-util" id="preset-zero">0 + 0</button>
+      </div>
+    </div>
+    <div class="controls-grid">
+      <div class="keypad-box">
+        <div class="kp-header">
+          <span class="kp-label">Operand A (up to 9 trits)</span>
+          <span class="kp-dec" id="dec-a">= 0</span>
+        </div>
+        <div class="trit-display" id="disp-a">0</div>
+        <div class="kp-buttons">
+          <button class="btn-neg" data-op="a" data-trit="-1">&minus; (T)</button>
+          <button class="btn-zero" data-op="a" data-trit="0">0</button>
+          <button class="btn-pos" data-op="a" data-trit="1">+ (1)</button>
+        </div>
+        <div class="kp-util">
+          <button class="btn-util" data-op="a" data-act="bksp">Bksp</button>
+          <button class="btn-util" data-op="a" data-act="clear">Clear</button>
+          <button class="btn-util" data-op="a" data-act="rand">Random</button>
+        </div>
+      </div>
+
+      <div class="keypad-box">
+        <div class="kp-header">
+          <span class="kp-label">Operand B (up to 9 trits)</span>
+          <span class="kp-dec" id="dec-b">= 0</span>
+        </div>
+        <div class="trit-display" id="disp-b">0</div>
+        <div class="kp-buttons">
+          <button class="btn-neg" data-op="b" data-trit="-1">&minus; (T)</button>
+          <button class="btn-zero" data-op="b" data-trit="0">0</button>
+          <button class="btn-pos" data-op="b" data-trit="1">+ (1)</button>
+        </div>
+        <div class="kp-util">
+          <button class="btn-util" data-op="b" data-act="bksp">Bksp</button>
+          <button class="btn-util" data-op="b" data-act="clear">Clear</button>
+          <button class="btn-util" data-op="b" data-act="rand">Random</button>
+        </div>
+      </div>
+
+      <div class="action-box">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="param-row">
+            <label for="snr-input">Audio SNR</label>
+            <input type="range" id="snr-input" min="-5" max="20" step="1" value="10">
+            <span class="param-val" id="snr-val">10 dB</span>
+          </div>
+          <div class="param-row">
+            <label for="seed-input">Noise / Jitter Seed</label>
+            <input type="number" id="seed-input" value="1337" step="1">
+          </div>
+          <div class="param-row">
+            <label><input type="checkbox" id="audio-play" checked> Play audio via WebAudio</label>
+            <button class="btn-util" id="replay-audio" disabled>Replay Tone</button>
+          </div>
+        </div>
+        <button class="go-btn" id="go-btn">Go the long way</button>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <details class="sabotage-details">
+        <summary>Sabotage controls (for verifying that receipts catch broken stages)</summary>
+        <div class="sabotage-grid">
+          <label class="sab-item"><input type="checkbox" id="sab-tritone"> Tritone: swap mid/high tones</label>
+          <label class="sab-item"><input type="checkbox" id="sab-ear"> Ear: detune Goertzel bin</label>
+          <label class="sab-item"><input type="checkbox" id="sab-hanoi"> Hanoi: allow 1 illegal move</label>
+          <label class="sab-item"><input type="checkbox" id="sab-billiards"> Billiards: shift 1 mirror</label>
+          <label class="sab-item"><input type="checkbox" id="sab-raster"> Rasterizer: swap 2 glyphs</label>
+          <label class="sab-item"><input type="checkbox" id="sab-reader"> Reader: swap 2 templates</label>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- Final Answer Banner (written ONLY from Reader's return value) -->
+  <section class="answer-banner">
+    <div>
+      <div class="answer-label">Answer (Reader OCR output only)</div>
+      <div id="final-answer">&mdash;</div>
+    </div>
+    <div class="answer-meta">
+      <div id="answer-status">Ready</div>
+      <div id="answer-note">Awaiting run</div>
+    </div>
+  </section>
+
+  <!-- Live Stage Visualizers -->
+  <section class="stages-grid">
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">1 &amp; 2. Tritone &amp; The Ear</h2>
+        <span class="card-sub" id="meta-audio">48 kHz Float32 &middot; Goertzel bank</span>
+      </div>
+      <canvas class="stage-canvas" id="cv-audio" width="560" height="190"></canvas>
+      <div class="stage-footer">
+        <span id="foot-tritone">Samples: &mdash;</span>
+        <span id="foot-ear">Decoded: &mdash;</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">3. Tower of Hanoi</h2>
+        <span class="card-sub" id="meta-hanoi">Sierpi&#324;ski shortest path</span>
+      </div>
+      <canvas class="stage-canvas" id="cv-hanoi" width="560" height="190"></canvas>
+      <div class="stage-footer">
+        <span id="foot-hanoi-moves">Moves: &mdash;</span>
+        <span id="foot-hanoi-read">Read: &mdash;</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">4. Billiard-Ball Adder</h2>
+        <span class="card-sub" id="meta-billiards">Fredkin-Toffoli integer lattice</span>
+      </div>
+      <canvas class="stage-canvas tall" id="cv-billiards" width="560" height="230"></canvas>
+      <div class="stage-footer">
+        <span id="foot-bbc-phys">Balls: &mdash; &middot; Energy: &mdash;</span>
+        <span id="foot-bbc-out">Exit ports: &mdash;</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">5. Glyphs &amp; The Reader (OCR)</h2>
+        <span class="card-sub" id="meta-ocr">Scanline AA rasterizer &middot; NCC matcher</span>
+      </div>
+      <canvas class="stage-canvas tall" id="cv-ocr" width="560" height="230"></canvas>
+      <div class="stage-footer">
+        <span id="foot-raster">Buffer: &mdash;</span>
+        <span id="foot-reader">OCR: &mdash;</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Receipts Panel -->
+  <section class="card">
+    <div class="card-head">
+      <h2 class="card-title">Receipts</h2>
+      <span class="card-sub" id="receipts-summary">Oracle checks each stage independently (never feeds one)</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th>Input Medium</th>
+            <th>Output</th>
+            <th>Time</th>
+            <th>Oracle Agreement</th>
+          </tr>
+        </thead>
+        <tbody id="receipts-body">
+          <tr><td colspan="5" style="color:var(--muted);">Press "Go the long way" to run the five-stage pipeline.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script id="core">
+/* INLINE: core — pure JS 5-stage balanced-ternary pipeline, zero WebAudio/Canvas deps, loaded directly by tests/run.js */
+(function (root) {
+  'use strict';
+
+  // =========================================================================
+  // 0. Deterministic PRNG & Balanced-Ternary Oracle (BigInt, check-only)
+  // =========================================================================
+  // INLINE: mulberry32 PRNG — standard 32-bit public-domain hash PRNG
+  function makeRng(seed) {
+    let s = (seed | 0) >>> 0;
+    return function next() {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function nextGaussian(rng) {
+    let u = 0, v = 0;
+    while (u === 0) u = rng();
+    while (v === 0) v = rng();
+    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  }
+
+  // Canonical representation: LSB-first array of trits in {-1, 0, +1}, trimmed (at least [0]).
+  function normalizeTrits(trits) {
+    const out = trits.slice();
+    while (out.length > 1 && out[out.length - 1] === 0) out.pop();
+    if (out.length === 0) out.push(0);
+    return out;
+  }
+
+  function tritsEqual(a, b) {
+    const na = normalizeTrits(a);
+    const nb = normalizeTrits(b);
+    if (na.length !== nb.length) return false;
+    for (let i = 0; i < na.length; i++) if (na[i] !== nb[i]) return false;
+    return true;
+  }
+
+  function tritsToString(trits) {
+    const n = normalizeTrits(trits);
+    let s = '';
+    for (let i = n.length - 1; i >= 0; i--) {
+      s += n[i] === -1 ? 'T' : (n[i] === 1 ? '1' : '0');
+    }
+    return s;
+  }
+
+  function tritsToPretty(trits) {
+    const n = normalizeTrits(trits);
+    let s = '';
+    for (let i = n.length - 1; i >= 0; i--) {
+      s += n[i] === -1 ? '\u2212' : (n[i] === 1 ? '+' : '0');
+    }
+    return s;
+  }
+
+  function stringToTrits(str) {
+    const clean = String(str).trim();
+    if (!clean) return [0];
+    const lsb = [];
+    for (let i = clean.length - 1; i >= 0; i--) {
+      const ch = clean[i];
+      if (ch === 'T' || ch === 't' || ch === '-' || ch === '\u2212') lsb.push(-1);
+      else if (ch === '1' || ch === '+') lsb.push(1);
+      else if (ch === '0') lsb.push(0);
+      else throw new Error('Invalid balanced-ternary character: ' + ch);
+    }
+    return normalizeTrits(lsb);
+  }
+
+  // Oracle: plain BigInt arithmetic, NEVER fed into any stage.
+  const Oracle = {
+    tritsToBigInt(trits) {
+      let acc = 0n;
+      let p = 1n;
+      for (let i = 0; i < trits.length; i++) {
+        acc += BigInt(trits[i]) * p;
+        p *= 3n;
+      }
+      return acc;
+    },
+    bigIntToTrits(val) {
+      let n = BigInt(val);
+      if (n === 0n) return [0];
+      const out = [];
+      while (n !== 0n) {
+        let r = n % 3n;
+        n = (n - r) / 3n;
+        if (r === 2n) { r = -1n; n += 1n; }
+        else if (r === -2n) { r = 1n; n -= 1n; }
+        out.push(Number(r));
+      }
+      return normalizeTrits(out);
+    },
+    add(aTrits, bTrits) {
+      return Oracle.bigIntToTrits(Oracle.tritsToBigInt(aTrits) + Oracle.tritsToBigInt(bTrits));
+    }
+  };
+
+  // =========================================================================
+  // 1. STAGE 1 — TRITONE (Audio Synthesis, 48 kHz Float32 PCM + White Noise)
+  // =========================================================================
+  const AUDIO_SR = 48000;
+  const AUDIO_SYM_SAMPLES = 480; // 10 ms -> bin spacing 100 Hz, exact integer cycles
+  const AUDIO_PAD_SAMPLES = 120; // 2.5 ms lead-in and lead-out
+  const AUDIO_FREQS = {
+    START: 600,   // 12 cycles / 960 samples
+    NEG:   800,   // 16 cycles (-1)
+    ZERO:  1000,  // 20 cycles (0)
+    POS:   1200,  // 24 cycles (+1)
+    SEP:   1500,  // 30 cycles
+    END:   1800,  // 36 cycles
+  };
+
+  function stage1_tritone(input, opts) {
+    const o = opts || {};
+    const snrDb = typeof o.snrDb === 'number' ? o.snrDb : 10;
+    const seed = typeof o.seed === 'number' ? o.seed : 1;
+    const sab = o.sabotage || {};
+
+    const aNorm = normalizeTrits(input.aTrits);
+    const bNorm = normalizeTrits(input.bTrits);
+
+    // Encode MSB-first: [START, ...A, SEP, ...B, END]
+    const syms = ['START'];
+    for (let i = aNorm.length - 1; i >= 0; i--) {
+      syms.push(aNorm[i] === -1 ? 'NEG' : (aNorm[i] === 1 ? 'POS' : 'ZERO'));
+    }
+    syms.push('SEP');
+    for (let i = bNorm.length - 1; i >= 0; i--) {
+      syms.push(bNorm[i] === -1 ? 'NEG' : (bNorm[i] === 1 ? 'POS' : 'ZERO'));
+    }
+    syms.push('END');
+
+    const totalLen = AUDIO_PAD_SAMPLES * 2 + syms.length * AUDIO_SYM_SAMPLES;
+    const samples = new Float32Array(totalLen);
+
+    // Tone map (sabotage swaps middle and high tones)
+    const freqMap = {
+      START: AUDIO_FREQS.START,
+      NEG:   AUDIO_FREQS.NEG,
+      ZERO:  sab.tritoneSwapMidHigh ? AUDIO_FREQS.POS : AUDIO_FREQS.ZERO,
+      POS:   sab.tritoneSwapMidHigh ? AUDIO_FREQS.ZERO : AUDIO_FREQS.POS,
+      SEP:   AUDIO_FREQS.SEP,
+      END:   AUDIO_FREQS.END,
+    };
+
+    const twoPiOverSr = (2 * Math.PI) / AUDIO_SR;
+    for (let s = 0; s < syms.length; s++) {
+      const f = freqMap[syms[s]];
+      const w = twoPiOverSr * f;
+      const base = AUDIO_PAD_SAMPLES + s * AUDIO_SYM_SAMPLES;
+      for (let n = 0; n < AUDIO_SYM_SAMPLES; n++) {
+        samples[base + n] = Math.sin(w * n);
+      }
+    }
+
+    // Add seeded white Gaussian noise at requested SNR (signal power Ps = 0.5)
+    if (isFinite(snrDb)) {
+      const rng = makeRng(seed ^ 0x51A7E1);
+      const noiseVar = 0.5 * Math.pow(10, -snrDb / 10);
+      const sigma = Math.sqrt(noiseVar);
+      for (let i = 0; i < totalLen; i += 2) {
+        let u = 0, v = 0;
+        while (u === 0) u = rng();
+        while (v === 0) v = rng();
+        const r = sigma * Math.sqrt(-2.0 * Math.log(u));
+        const th = 2.0 * Math.PI * v;
+        samples[i] += r * Math.cos(th);
+        if (i + 1 < totalLen) samples[i + 1] += r * Math.sin(th);
+      }
+    }
+
+    // Return ONLY the audio medium (sampleRate + Float32 PCM samples)
+    return { sampleRate: AUDIO_SR, samples };
+  }
+
+  // =========================================================================
+  // 2. STAGE 2 — THE EAR (Goertzel Filter Bank, reads audio samples ONLY)
+  // =========================================================================
+  function goertzelPower(samples, offset, N, freq, sr) {
+    const k = (N * freq) / sr;
+    const w = (2 * Math.PI * k) / N;
+    const coeff = 2 * Math.cos(w);
+    let s1 = 0, s2 = 0;
+    const end = offset + N;
+    for (let i = offset; i < end; i++) {
+      const s = samples[i] + coeff * s1 - s2;
+      s2 = s1;
+      s1 = s;
+    }
+    return s1 * s1 + s2 * s2 - coeff * s1 * s2;
+  }
+
+  function stage2_ear(audioMedium, opts) {
+    const o = opts || {};
+    const sab = o.sabotage || {};
+    const sr = audioMedium.sampleRate;
+    const samples = audioMedium.samples;
+    const N = Math.round(sr * 0.01); // 480 samples at 48 kHz
+
+    const bins = [
+      { name: 'START', freq: AUDIO_FREQS.START },
+      { name: 'NEG',   freq: AUDIO_FREQS.NEG },
+      { name: 'ZERO',  freq: AUDIO_FREQS.ZERO },
+      { name: 'POS',   freq: sab.earDetuneBin ? AUDIO_FREQS.POS + 200 : AUDIO_FREQS.POS },
+      { name: 'SEP',   freq: AUDIO_FREQS.SEP },
+      { name: 'END',   freq: AUDIO_FREQS.END },
+    ];
+
+    // Step 1: Synchronize by locating the peak of the START tone in the initial window
+    const searchMax = Math.min(samples.length - N, N * 2);
+    let bestOffset = 0;
+    let bestStartPower = -1;
+    // Coarse scan (step 24), then fine scan around peak (step 4)
+    for (let off = 0; off <= searchMax; off += 24) {
+      const p = goertzelPower(samples, off, N, AUDIO_FREQS.START, sr);
+      if (p > bestStartPower) { bestStartPower = p; bestOffset = off; }
+    }
+    const fineLo = Math.max(0, bestOffset - 24);
+    const fineHi = Math.min(searchMax, bestOffset + 24);
+    for (let off = fineLo; off <= fineHi; off += 4) {
+      const p = goertzelPower(samples, off, N, AUDIO_FREQS.START, sr);
+      if (p > bestStartPower) { bestStartPower = p; bestOffset = off; }
+    }
+
+    // Step 2: Decode subsequent symbol windows via Goertzel filter bank
+    const decodedSyms = [];
+    const frames = [];
+    for (let pos = bestOffset + N; pos + N <= samples.length; pos += N) {
+      const powers = {};
+      let bestName = 'ZERO';
+      let bestP = -1;
+      for (let b = 0; b < bins.length; b++) {
+        const p = goertzelPower(samples, pos, N, bins[b].freq, sr);
+        powers[bins[b].name] = p;
+        if (bins[b].name !== 'START' && p > bestP) {
+          bestP = p;
+          bestName = bins[b].name;
+        }
+      }
+      frames.push({ offset: pos, sym: bestName, powers });
+      if (bestName === 'END') break;
+      decodedSyms.push(bestName);
+    }
+
+    // Split on SEP into A and B (MSB-first -> LSB-first)
+    const sepIdx = decodedSyms.indexOf('SEP');
+    const aSyms = sepIdx >= 0 ? decodedSyms.slice(0, sepIdx) : decodedSyms;
+    const bSyms = sepIdx >= 0 ? decodedSyms.slice(sepIdx + 1) : ['ZERO'];
+
+    function symsToTrits(list) {
+      const lsb = [];
+      for (let i = list.length - 1; i >= 0; i--) {
+        if (list[i] === 'NEG') lsb.push(-1);
+        else if (list[i] === 'POS') lsb.push(1);
+        else if (list[i] === 'ZERO') lsb.push(0);
+      }
+      return normalizeTrits(lsb);
+    }
+
+    return {
+      aTrits: symsToTrits(aSyms),
+      bTrits: symsToTrits(bSyms),
+      startOffset: bestOffset,
+      frames,
+    };
+  }
+
+  // =========================================================================
+  // 3. STAGE 3 — TOWER OF HANOI (Sierpinski Shortest Path + Move Checker)
+  // =========================================================================
+  const HANOI_DISCS = 9;
+
+  function hanoiApplyLegalMove(pegs, from, to) {
+    if (from < 0 || from > 2 || to < 0 || to > 2 || from === to) {
+      throw new Error('Illegal Hanoi move: invalid peg indices ' + from + ' -> ' + to);
+    }
+    if (pegs[from].length === 0) {
+      throw new Error('Illegal Hanoi move: source peg ' + from + ' is empty');
+    }
+    const disc = pegs[from][pegs[from].length - 1];
+    if (pegs[to].length > 0 && pegs[to][pegs[to].length - 1] < disc) {
+      throw new Error('Illegal Hanoi move: cannot place disc ' + disc + ' onto smaller disc ' + pegs[to][pegs[to].length - 1]);
+    }
+    pegs[from].pop();
+    pegs[to].push(disc);
+    return disc;
+  }
+
+  // Shortest path in the Sierpinski state graph from all-on-peg-0 to targetPegs[0..n-1]
+  // Disc 0 is smallest, disc n-1 is largest. Peg 0 = -1 (left), Peg 1 = 0 (mid), Peg 2 = +1 (right).
+  function hanoiReachPosition(trits, opts) {
+    const o = opts || {};
+    const sab = o.sabotage || {};
+    const recordMoves = !!o.recordMoves;
+    const n = HANOI_DISCS;
+
+    const target = new Int8Array(n);
+    for (let i = 0; i < n; i++) {
+      const t = i < trits.length ? trits[i] : 0;
+      target[i] = t + 1; // -1->0, 0->1, +1->2
+    }
+
+    // Start with every disc on peg 0 (largest n-1 at bottom, smallest 0 at top)
+    const pegs = [[], [], []];
+    const cur = new Int8Array(n);
+    for (let d = n - 1; d >= 0; d--) {
+      pegs[0].push(d);
+      cur[d] = 0;
+    }
+
+    const moves = [];
+    let moveCount = 0;
+
+    function doMove(from, to) {
+      const disc = hanoiApplyLegalMove(pegs, from, to);
+      cur[disc] = to;
+      moveCount++;
+      if (recordMoves) moves.push([from, to, disc]);
+    }
+
+    // Move tower of discs 0..k (currently all on peg 'from') to peg 'to' via 'aux'
+    function moveTower(k, from, to, aux) {
+      if (k < 0 || from === to) return;
+      moveTower(k - 1, from, aux, to);
+      doMove(from, to);
+      moveTower(k - 1, aux, to, from);
+    }
+
+    // Exact shortest-path algorithm in Sierpinski graph:
+    // From largest disc down to 0, whenever cur[k] !== target[k], move all smaller
+    // discs (which are guaranteed to share a single peg cur[0]) to aux, move disc k,
+    // and continue with smaller discs now all on aux!
+    for (let k = n - 1; k >= 0; k--) {
+      if (cur[k] === target[k]) continue;
+      const from = cur[k];
+      const to = target[k];
+      const aux = 3 - from - to;
+      if (k > 0) {
+        const subFrom = cur[k - 1];
+        if (subFrom !== aux) {
+          moveTower(k - 1, subFrom, aux, 3 - subFrom - aux);
+        }
+      }
+      doMove(from, to);
+    }
+
+    // Sabotage: bypass move checker to perform one illegal move (place larger disc onto smaller disc / wrong peg)
+    if (sab.hanoiIllegalMove) {
+      // Find a non-empty peg and illegally move its bottom (largest) disc onto another peg's top!
+      let src = 0;
+      if (pegs[0].length === 0) src = pegs[1].length > 0 ? 1 : 2;
+      const dst = (src + 1) % 3;
+      const bottomDisc = pegs[src].shift();
+      pegs[dst].push(bottomDisc);
+      moveCount++;
+      if (recordMoves) moves.push([src, dst, bottomDisc, 'ILLEGAL']);
+    }
+
+    return { pegs, moveCount, moves };
+  }
+
+  // Reader: recovers trits from the three peg arrays ONLY, verifying stack legality!
+  function hanoiReadPegs(pegs) {
+    let legal = true;
+    const found = new Int8Array(HANOI_DISCS);
+    const trits = new Array(HANOI_DISCS).fill(0);
+    for (let p = 0; p < 3; p++) {
+      const stack = pegs[p];
+      for (let i = 0; i < stack.length; i++) {
+        const d = stack[i];
+        if (d < 0 || d >= HANOI_DISCS || found[d]) legal = false;
+        if (i > 0 && stack[i] > stack[i - 1]) legal = false; // larger disc on top of smaller!
+        found[d] = 1;
+        trits[d] = p - 1;
+      }
+    }
+    for (let d = 0; d < HANOI_DISCS; d++) if (!found[d]) legal = false;
+    return { trits: normalizeTrits(trits), legal };
+  }
+
+  function stage3_hanoi(input, opts) {
+    const o = opts || {};
+    const sab = o.sabotage || {};
+    const resA = hanoiReachPosition(input.aTrits, { sabotage: sab, recordMoves: o.recordMoves });
+    const resB = hanoiReachPosition(input.bTrits, { sabotage: {}, recordMoves: o.recordMoves });
+    const readA = hanoiReadPegs(resA.pegs);
+    const readB = hanoiReadPegs(resB.pegs);
+    return {
+      aTrits: readA.trits,
+      bTrits: readB.trits,
+      aPegs: resA.pegs,
+      bPegs: resB.pegs,
+      aMoveCount: resA.moveCount,
+      bMoveCount: resB.moveCount,
+      aMoves: resA.moves,
+      bMoves: resB.moves,
+      legal: readA.legal && readB.legal,
+    };
+  }
+
+  // =========================================================================
+  // 4. STAGE 4 — BILLIARD-BALL COMPUTER (Fredkin & Toffoli 1982)
+  //    Method:
+  //      1. Generate exact 9-row balanced-ternary half-adder truth table &
+  //         7-row carry-combiner truth table in dual-rail encoding.
+  //      2. Minimize all outputs with Quine-McCluskey (with don't-cares for
+  //         invalid (1,1) dual-rail states).
+  //      3. Compile minimized SOP -> common-subexpression DAG -> parity-aligned
+  //         Fredkin-Toffoli Interaction Gate (IG) netlist (85 IG gates).
+  //      4. Lay out all 85 IG gates, mirrors (H/V), and CONST1 injectors
+  //         automatically on the exact integer lattice Z^2.
+  //      5. Chain 9 per-trit full adders with carry ripple & path-length timing.
+  //      6. Simulate hard spheres on Z^2 using ONLY integer arithmetic (no floats).
+  // =========================================================================
+  function pk2(x, y) { return ((x + 32768) << 16) | ((y + 32768) & 0xFFFF); }
+  function pk3(x, y, t) { return (((x + 4096) * 8192 + (y + 4096)) * 2048) + t; }
+
+  function quineMcCluskey(numVars, ones, dontCares) {
+    if (ones.length === 0) return [];
+    const all = Array.from(new Set([...ones, ...dontCares]));
+    let current = all.map(v => ({ bits: v, mask: 0 }));
+    const primes = new Map();
+    function popcount(x) { let c = 0; while (x) { x &= x - 1; c++; } return c; }
+
+    while (current.length > 0) {
+      const used = new Uint8Array(current.length);
+      const nextMap = new Map();
+      for (let i = 0; i < current.length; i++) {
+        for (let j = i + 1; j < current.length; j++) {
+          if (current[i].mask !== current[j].mask) continue;
+          const diff = (current[i].bits ^ current[j].bits) & ~current[i].mask;
+          if (diff !== 0 && (diff & (diff - 1)) === 0) {
+            used[i] = 1; used[j] = 1;
+            const nMask = current[i].mask | diff;
+            const nBits = current[i].bits & ~nMask;
+            const key = (nBits << 12) | nMask;
+            if (!nextMap.has(key)) nextMap.set(key, { bits: nBits, mask: nMask });
+          }
+        }
+      }
+      for (let i = 0; i < current.length; i++) {
+        if (!used[i]) {
+          const key = (current[i].bits << 12) | current[i].mask;
+          primes.set(key, current[i]);
+        }
+      }
+      current = Array.from(nextMap.values());
+    }
+
+    const primeList = Array.from(primes.values());
+    const uncovered = new Set(ones);
+    const selected = [];
+    function covers(imp, m) { return (m & ~imp.mask) === imp.bits; }
+
+    let changed = true;
+    while (changed && uncovered.size > 0) {
+      changed = false;
+      for (const m of Array.from(uncovered)) {
+        const covering = primeList.filter(p => covers(p, m));
+        if (covering.length === 1) {
+          const p = covering[0];
+          selected.push(p);
+          for (const u of Array.from(uncovered)) if (covers(p, u)) uncovered.delete(u);
+          changed = true;
+          break;
+        }
+      }
+    }
+    while (uncovered.size > 0) {
+      let best = null, bestCov = -1, bestLits = 999;
+      for (const p of primeList) {
+        let cov = 0;
+        for (const u of uncovered) if (covers(p, u)) cov++;
+        const lits = numVars - popcount(p.mask);
+        if (cov > bestCov || (cov === bestCov && lits < bestLits)) {
+          best = p; bestCov = cov; bestLits = lits;
+        }
+      }
+      selected.push(best);
+      for (const u of Array.from(uncovered)) if (covers(best, u)) uncovered.delete(u);
+    }
+    return selected;
+  }
+
+  function buildTruthTableBlock(numVars, rows, outNames) {
+    const validMasks = new Set(rows.map(r => r.idx));
+    const dontCares = [];
+    for (let m = 0; m < (1 << numVars); m++) if (!validMasks.has(m)) dontCares.push(m);
+    const sops = [];
+    for (let o = 0; o < outNames.length; o++) {
+      const ones = rows.filter(r => r.outBits[o] === 1).map(r => r.idx);
+      sops.push({ name: outNames[o], imps: quineMcCluskey(numVars, ones, dontCares) });
+    }
+    return sops;
+  }
+
+  function synthesizeFullAdderIGNetlist() {
+    const trits = [-1, 0, 1];
+    const haRows = [];
+    for (const a of trits) {
+      for (const b of trits) {
+        const sum = a + b;
+        let c = 0, s = sum;
+        if (sum >= 2) { c = 1; s = sum - 3; }
+        else if (sum <= -2) { c = -1; s = sum + 3; }
+        const inBits = [a === 1 ? 1 : 0, a === -1 ? 1 : 0, b === 1 ? 1 : 0, b === -1 ? 1 : 0];
+        const outBits = [s === 1 ? 1 : 0, s === -1 ? 1 : 0, c === 1 ? 1 : 0, c === -1 ? 1 : 0];
+        let idx = 0;
+        for (let i = 0; i < 4; i++) idx = (idx << 1) | inBits[i];
+        haRows.push({ inBits, outBits, idx });
+      }
+    }
+    const haSops = buildTruthTableBlock(4, haRows, ['s_p', 's_m', 'c_p', 'c_m']);
+
+    const ccRows = [];
+    for (const c1 of trits) {
+      for (const c2 of trits) {
+        if (Math.abs(c1 + c2) > 1) continue;
+        const co = c1 + c2;
+        const inBits = [c1 === 1 ? 1 : 0, c1 === -1 ? 1 : 0, c2 === 1 ? 1 : 0, c2 === -1 ? 1 : 0];
+        const outBits = [co === 1 ? 1 : 0, co === -1 ? 1 : 0];
+        let idx = 0;
+        for (let i = 0; i < 4; i++) idx = (idx << 1) | inBits[i];
+        ccRows.push({ inBits, outBits, idx });
+      }
+    }
+    const ccSops = buildTruthTableBlock(4, ccRows, ['co_p', 'co_m']);
+
+    const nodes = [];
+    const nodeMap = new Map();
+    function addNode(op, a, b) {
+      const key = op + ':' + a + ':' + b;
+      if (nodeMap.has(key)) return nodeMap.get(key);
+      const id = nodes.length;
+      nodes.push({ id, op, a, b });
+      nodeMap.set(key, id);
+      return id;
+    }
+    const inIds = [0, 1, 2, 3, 4, 5].map(i => addNode('INPUT', i, -1));
+    function makeNot(x) { return addNode('NOT', x, -1); }
+    function makeAnd(x, y) { return x <= y ? addNode('AND', x, y) : addNode('AND', y, x); }
+    function makeAndNot(x, y) { return addNode('ANDNOT', x, y); }
+
+    function emitSops(sops, blockInIds) {
+      const numVars = blockInIds.length;
+      const res = {};
+      for (const { name, imps } of sops) {
+        const termIds = [];
+        for (const imp of imps) {
+          const pos = [], neg = [];
+          for (let v = 0; v < numVars; v++) {
+            const bitPos = numVars - 1 - v;
+            if ((imp.mask >> bitPos) & 1) continue;
+            if ((imp.bits >> bitPos) & 1) pos.push(blockInIds[v]);
+            else neg.push(blockInIds[v]);
+          }
+          let cur;
+          if (pos.length > 0) {
+            cur = pos[0];
+            for (let i = 1; i < pos.length; i++) cur = makeAnd(cur, pos[i]);
+            for (let i = 0; i < neg.length; i++) cur = makeAndNot(cur, neg[i]);
+          } else {
+            cur = makeNot(neg[0]);
+            for (let i = 1; i < neg.length; i++) cur = makeAndNot(cur, neg[i]);
+          }
+          termIds.push(cur);
+        }
+        if (termIds.length === 1) res[name] = termIds[0];
+        else {
+          let acc = makeNot(termIds[0]);
+          for (let i = 1; i < termIds.length; i++) acc = makeAndNot(acc, termIds[i]);
+          res[name] = makeNot(acc);
+        }
+      }
+      return res;
+    }
+
+    const ha1 = emitSops(haSops, [inIds[0], inIds[1], inIds[2], inIds[3]]);
+    const ha2 = emitSops(haSops, [ha1.s_p, ha1.s_m, inIds[4], inIds[5]]);
+    const cc = emitSops(ccSops, [ha1.c_p, ha1.c_m, ha2.c_p, ha2.c_m]);
+    const outNodeIds = { s_p: ha2.s_p, s_m: ha2.s_m, co_p: cc.co_p, co_m: cc.co_m };
+
+    const useCount = new Int32Array(nodes.length);
+    for (const n of nodes) {
+      if (n.op === 'NOT') useCount[n.a]++;
+      else if (n.op === 'AND' || n.op === 'ANDNOT') { useCount[n.a]++; useCount[n.b]++; }
+    }
+    for (const nm of ['s_p', 's_m', 'co_p', 'co_m']) useCount[outNodeIds[nm]]++;
+
+    const gates = [];
+    function wireParity(w) {
+      if (w.kind === 'INPUT') return 0;
+      if (w.kind === 'CONST1') return -1;
+      const gp = gates[w.gateId].parity;
+      return (w.port === 'AB_up' || w.port === 'AB_dn') ? (1 - gp) : gp;
+    }
+    function addIG(inA, inB) {
+      let pA = wireParity(inA);
+      let pB = wireParity(inB);
+      if (pA !== -1 && pB !== -1 && pA !== pB) {
+        const shiftGid = addIG(inB, { kind: 'CONST1' });
+        inB = { kind: 'GATE', gateId: shiftGid, port: 'AB_up' };
+        pB = wireParity(inB);
+      }
+      const parity = pA !== -1 ? pA : (pB !== -1 ? pB : 0);
+      const lvA = inA.kind === 'GATE' ? gates[inA.gateId].level : 0;
+      const lvB = inB.kind === 'GATE' ? gates[inB.gateId].level : 0;
+      const id = gates.length;
+      gates.push({ id, inA, inB, level: Math.max(lvA, lvB) + 1, parity });
+      return id;
+    }
+    function fanoutWire(wireRef, k) {
+      if (k <= 0) return [];
+      const pool = [wireRef];
+      while (pool.length < k) {
+        const w = pool.shift();
+        const gid = addIG(w, { kind: 'CONST1' });
+        pool.push({ kind: 'GATE', gateId: gid, port: 'AB_up' });
+        pool.push({ kind: 'GATE', gateId: gid, port: 'AB_dn' });
+      }
+      return pool;
+    }
+
+    const wirePools = new Array(nodes.length);
+    for (const n of nodes) {
+      if (n.op === 'INPUT') {
+        wirePools[n.id] = fanoutWire({ kind: 'INPUT', idx: n.a }, useCount[n.id]);
+      } else if (n.op === 'NOT') {
+        const aW = wirePools[n.a].shift();
+        const gid = addIG(aW, { kind: 'CONST1' });
+        wirePools[n.id] = fanoutWire({ kind: 'GATE', gateId: gid, port: 'B_not_A' }, useCount[n.id]);
+      } else if (n.op === 'AND') {
+        const aW = wirePools[n.a].shift();
+        const bW = wirePools[n.b].shift();
+        const gid = addIG(aW, bW);
+        if (useCount[n.id] === 1) wirePools[n.id] = [{ kind: 'GATE', gateId: gid, port: 'AB_up' }];
+        else {
+          const pool = [
+            { kind: 'GATE', gateId: gid, port: 'AB_up' },
+            { kind: 'GATE', gateId: gid, port: 'AB_dn' },
+          ];
+          while (pool.length < useCount[n.id]) {
+            const w = pool.shift();
+            const cg = addIG(w, { kind: 'CONST1' });
+            pool.push({ kind: 'GATE', gateId: cg, port: 'AB_up' });
+            pool.push({ kind: 'GATE', gateId: cg, port: 'AB_dn' });
+          }
+          wirePools[n.id] = pool;
+        }
+      } else if (n.op === 'ANDNOT') {
+        const aW = wirePools[n.a].shift();
+        const bW = wirePools[n.b].shift();
+        const gid = addIG(aW, bW);
+        wirePools[n.id] = fanoutWire({ kind: 'GATE', gateId: gid, port: 'A_not_B' }, useCount[n.id]);
+      }
+    }
+    const outputs = {};
+    for (const nm of ['s_p', 's_m', 'co_p', 'co_m']) {
+      let w = wirePools[outNodeIds[nm]].shift();
+      if (wireParity(w) !== 0) {
+        const sg = addIG(w, { kind: 'CONST1' });
+        w = { kind: 'GATE', gateId: sg, port: 'AB_up' };
+      }
+      outputs[nm] = w;
+    }
+    return { gates, outputs };
+  }
+
+  function buildRoute(x1, y1, vx1, vy1, t1, x2, y2, vx2, vy2, t2, occST, occSpace, occMirrors, occProtected) {
+    const dt = t2 - t1;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    if (dt < Math.abs(dx) || dt < Math.abs(dy)) return null;
+    if (((dt - dx) & 1) !== 0 || ((dt - dy) & 1) !== 0) return null;
+
+    const ax = (dt + dx) >> 1;
+    const bx = (dt - dx) >> 1;
+    const ay = (dt + dy) >> 1;
+    const by = (dt - dy) >> 1;
+
+    const xCands = [];
+    if (bx === 0) xCands.push([]);
+    else {
+      for (let p = 1; p < Math.min(ax, 24); p++) xCands.push([p, p + bx]);
+      const stepP = Math.max(1, ax >> 4);
+      for (let p = 24; p < ax; p += stepP) xCands.push([p, p + bx]);
+    }
+
+    const s1 = vy1 === 1 ? ay : by;
+    const s2 = dt - s1;
+    const yCands = [];
+    if (vy1 === vy2) {
+      if (s2 === 0) yCands.push([]);
+      else {
+        for (let q = 1; q < s1; q++) yCands.push([q, q + s2]);
+      }
+    } else {
+      if (s1 >= 1 && s2 >= 1) yCands.push([s1]);
+      const stepA = Math.max(1, s1 >> 3);
+      const stepB = Math.max(1, s2 >> 3);
+      for (let a = 1; a < s1; a += stepA) {
+        for (let b = 1; b < s2; b += stepB) {
+          yCands.push([a, a + b, s1 + b]);
+        }
+      }
+    }
+
+    for (let yi = 0; yi < yCands.length; yi++) {
+      const yf = yCands[yi];
+      for (let xi = 0; xi < xCands.length; xi++) {
+        const xf = xCands[xi];
+        let sameTick = false;
+        for (let a = 0; a < xf.length; a++) {
+          for (let b = 0; b < yf.length; b++) {
+            if (xf[a] === yf[b]) { sameTick = true; break; }
+          }
+          if (sameTick) break;
+        }
+        if (sameTick) continue;
+
+        let cx = x1, cy = y1, cvx = vx1, cvy = vy1;
+        const pts = [];
+        const newMirrors = [];
+        let ok = true;
+        let xfi = 0, yfi = 0;
+        const xfl = xf.length, yfl = yf.length;
+
+        for (let s = 1; s <= dt; s++) {
+          cx += cvx;
+          cy += cvy;
+          const ct = t1 + s;
+          const spaceKey = pk2(cx, cy);
+          const stKey = pk3(cx, cy, ct);
+
+          let flipX = false, flipY = false;
+          if (xfi < xfl && xf[xfi] === s) { flipX = true; xfi++; }
+          if (yfi < yfl && yf[yfi] === s) { flipY = true; yfi++; }
+
+          if (occMirrors.has(spaceKey) || (occProtected && occProtected.has(spaceKey))) { ok = false; break; }
+          if (occST.has(stKey)) { ok = false; break; }
+
+          if (flipX || flipY) {
+            if (occSpace.has(spaceKey)) { ok = false; break; }
+            newMirrors.push({ x: cx, y: cy, type: flipX ? 2 : 1 }); // 1=H, 2=V
+            if (flipX) cvx = -cvx;
+            if (flipY) cvy = -cvy;
+          }
+          pts.push({ x: cx, y: cy, t: ct });
+        }
+        if (ok && cx === x2 && cy === y2 && cvx === vx2 && cvy === vy2) {
+          return { pts, newMirrors };
+        }
+      }
+    }
+    return null;
+  }
+
+  function buildMirrorHashTable(mirrorList) {
+    let minX = 0, maxX = 0, minY = 0, maxY = 0;
+    for (let i = 0; i < mirrorList.length; i++) {
+      const m = mirrorList[i];
+      if (m.x < minX) minX = m.x;
+      if (m.x > maxX) maxX = m.x;
+      if (m.y < minY) minY = m.y;
+      if (m.y > maxY) maxY = m.y;
+    }
+    minX -= 4; maxX += 4; minY -= 4; maxY += 4;
+    const strideY = maxY - minY + 1;
+    const grid = new Uint8Array((maxX - minX + 1) * strideY);
+    for (let i = 0; i < mirrorList.length; i++) {
+      const m = mirrorList[i];
+      grid[(m.x - minX) * strideY + (m.y - minY)] = m.type; // 1=H, 2=V
+    }
+    return { minX, maxX, minY, maxY, strideY, grid };
+  }
+
+  function layoutOneTritAdder(net) {
+    const maxLv = Math.max(...net.gates.map(g => g.level));
+    const byLevel = Array.from({ length: maxLv + 1 }, () => []);
+    for (const g of net.gates) byLevel[g.level].push(g);
+
+    const DX = 36, DT = 64, DY = 10;
+    const gatePos = new Array(net.gates.length);
+    const usedDP = new Set();
+    const usedDM = new Set();
+    for (let i = 0; i < 6; i++) { const y = (i - 2) * 10; usedDP.add(y); usedDM.add(y); }
+
+    for (let lv = 1; lv <= maxLv; lv++) {
+      const arr = byLevel[lv];
+      let curY = -Math.floor(arr.length / 2) * DY;
+      arr.forEach((g, idx) => {
+        const gx = lv * DX;
+        const gt = lv * DT + 2 * idx;
+        let gy = curY;
+        if ((gy & 1) !== g.parity) gy += 1;
+        while (
+          usedDP.has(gx + gy) || usedDP.has(gx + gy - 1) ||
+          usedDM.has(gy - gx) || usedDM.has(gy + 1 - gx)
+        ) { gy += 2; }
+        usedDP.add(gx + gy); usedDP.add(gx + gy - 1);
+        usedDM.add(gy - gx); usedDM.add(gy + 1 - gx);
+        gatePos[g.id] = { gx, gy, gt };
+        curY = gy + DY;
+      });
+    }
+
+    const inPos = [0, 1, 2, 3, 4, 5].map(i => ({ x: 0, y: (i - 2) * 10, vx: 1, vy: 1, t: 0 }));
+    const outX = (maxLv + 1) * DX;
+    const outT = (maxLv + 1) * DT;
+    const outOrder = ['s_p', 's_m', 'co_p', 'co_m'];
+    // Align co_p & co_m with inPos[4] & inPos[5] so chained adders connect directly!
+    const outPos = {
+      s_p:  { x: outX, y: -20, vx: 1, vy: 1, t: outT },
+      s_m:  { x: outX, y: -10, vx: 1, vy: 1, t: outT },
+      co_p: { x: outX, y: inPos[4].y, vx: 1, vy: 1, t: outT },
+      co_m: { x: outX, y: inPos[5].y, vx: 1, vy: 1, t: outT },
+    };
+
+    const occST = new Set();
+    const occSpace = new Set();
+    const occMirrors = new Map();
+    const occProtected = new Set();
+    const mirrorList = [];
+    let outputMirrorIdx = -1;
+
+    function commitPoints(pts) {
+      for (const p of pts) {
+        occST.add(pk3(p.x, p.y, p.t));
+        occSpace.add(pk2(p.x, p.y));
+      }
+    }
+    function commitMirrors(ms, markOutput) {
+      for (const m of ms) {
+        occMirrors.set(pk2(m.x, m.y), m.type);
+        occSpace.add(pk2(m.x, m.y));
+        if (markOutput && outputMirrorIdx < 0) outputMirrorIdx = mirrorList.length;
+        mirrorList.push(m);
+      }
+    }
+
+    for (const g of net.gates) {
+      const { gx, gy, gt } = gatePos[g.id];
+      commitPoints([
+        { x: gx - 2, y: gy - 2, t: gt - 2 },
+        { x: gx - 2, y: gy + 2, t: gt - 2 },
+        { x: gx - 1, y: gy - 1, t: gt - 1 },
+        { x: gx - 1, y: gy + 1, t: gt - 1 },
+        { x: gx, y: gy, t: gt },
+        { x: gx, y: gy - 1, t: gt },
+        { x: gx, y: gy + 1, t: gt },
+      ]);
+      occProtected.add(pk2(gx + 1, gy - 2));
+      occProtected.add(pk2(gx + 1, gy - 1));
+      occProtected.add(pk2(gx + 1, gy + 1));
+      occProtected.add(pk2(gx + 1, gy + 2));
+    }
+    for (const ip of inPos) commitPoints([ip]);
+
+    function wireStart(w) {
+      if (w.kind === 'INPUT') return inPos[w.idx];
+      const { gx, gy, gt } = gatePos[w.gateId];
+      if (w.port === 'A_not_B') return { x: gx, y: gy, vx: 1, vy: 1, t: gt };
+      if (w.port === 'B_not_A') return { x: gx, y: gy, vx: 1, vy: -1, t: gt };
+      if (w.port === 'AB_up')   return { x: gx, y: gy - 1, vx: 1, vy: -1, t: gt };
+      if (w.port === 'AB_dn')   return { x: gx, y: gy + 1, vx: 1, vy: 1, t: gt };
+    }
+
+    const usedPorts = new Set();
+    for (const g of net.gates) {
+      if (g.inA.kind === 'GATE') usedPorts.add(g.inA.gateId + ':' + g.inA.port);
+      if (g.inB.kind === 'GATE') usedPorts.add(g.inB.gateId + ':' + g.inB.port);
+    }
+    for (const nm of outOrder) {
+      const w = net.outputs[nm];
+      if (w.kind === 'GATE') usedPorts.add(w.gateId + ':' + w.port);
+    }
+
+    // Reserve all unused (waste) ball straight trajectories
+    const allPorts = ['A_not_B', 'B_not_A', 'AB_up', 'AB_dn'];
+    for (const g of net.gates) {
+      for (const port of allPorts) {
+        if (usedPorts.has(g.id + ':' + port)) continue;
+        const st = wireStart({ kind: 'GATE', gateId: g.id, port });
+        const pts = [];
+        let cx = st.x, cy = st.y;
+        for (let t = st.t + 1; t <= outT; t++) {
+          cx += st.vx; cy += st.vy;
+          pts.push({ x: cx, y: cy, t });
+        }
+        commitPoints(pts);
+      }
+    }
+
+    // Pass 1: Gate-to-gate wires
+    const const1Targets = [];
+    for (const g of net.gates) {
+      const { gx, gy, gt } = gatePos[g.id];
+      const targets = [
+        { w: g.inA, tx: gx - 1, ty: gy - 1, tvx: 1, tvy: 1, tt: gt - 1 },
+        { w: g.inB, tx: gx - 1, ty: gy + 1, tvx: 1, tvy: -1, tt: gt - 1 },
+      ];
+      for (const tgt of targets) {
+        if (tgt.w.kind === 'CONST1') { const1Targets.push({ g, tgt }); continue; }
+        const tgtKey = pk3(tgt.tx, tgt.ty, tgt.tt);
+        const preKey = pk3(tgt.tx - tgt.tvx, tgt.ty - tgt.tvy, tgt.tt - 1);
+        occST.delete(tgtKey); occST.delete(preKey);
+        const st = wireStart(tgt.w);
+        const exitKey = pk3(st.x + st.vx, st.y + st.vy, st.t + 1);
+        const exitSp = pk2(st.x + st.vx, st.y + st.vy);
+        const hadProt = occProtected.delete(exitSp);
+        occST.delete(exitKey);
+
+        let r = buildRoute(st.x, st.y, st.vx, st.vy, st.t, tgt.tx, tgt.ty, tgt.tvx, tgt.tvy, tgt.tt, occST, occSpace, occMirrors, occProtected);
+        if (!r) {
+          const mt = (st.t + tgt.tt) >> 1;
+          let mx = (st.x + tgt.tx) >> 1;
+          if (((mx - st.x) & 1) !== ((mt - st.t) & 1)) mx += 1;
+          for (let myOff = 20; myOff <= 160 && !r; myOff += 4) {
+            for (const sgn of [1, -1]) {
+              let my = ((st.y + tgt.ty) >> 1) + sgn * myOff;
+              if (((my - st.y) & 1) !== ((mt - st.t) & 1)) my += 1;
+              if (occMirrors.has(pk2(mx, my)) || occST.has(pk3(mx, my, mt))) continue;
+              const r1 = buildRoute(st.x, st.y, st.vx, st.vy, st.t, mx, my, 1, sgn, mt, occST, occSpace, occMirrors, occProtected);
+              if (!r1) continue;
+              const addedST = [], addedSp = [], addedM = [];
+              for (const p of r1.pts) {
+                const k3 = pk3(p.x, p.y, p.t), k2 = pk2(p.x, p.y);
+                if (!occST.has(k3)) { occST.add(k3); addedST.push(k3); }
+                if (!occSpace.has(k2)) { occSpace.add(k2); addedSp.push(k2); }
+              }
+              for (const m of r1.newMirrors) {
+                const k2 = pk2(m.x, m.y);
+                if (!occMirrors.has(k2)) { occMirrors.set(k2, m.type); addedM.push(k2); }
+                if (!occSpace.has(k2)) { occSpace.add(k2); addedSp.push(k2); }
+              }
+              const r2 = buildRoute(mx, my, 1, sgn, mt, tgt.tx, tgt.ty, tgt.tvx, tgt.tvy, tgt.tt, occST, occSpace, occMirrors, occProtected);
+              for (const k3 of addedST) occST.delete(k3);
+              for (const k2 of addedSp) occSpace.delete(k2);
+              for (const k2 of addedM) occMirrors.delete(k2);
+              if (r2) { r = { pts: [...r1.pts, ...r2.pts], newMirrors: [...r1.newMirrors, ...r2.newMirrors] }; break; }
+            }
+          }
+        }
+        occST.add(exitKey); occST.add(tgtKey); occST.add(preKey);
+        if (hadProt) occProtected.add(exitSp);
+        if (!r) throw new Error('Billiard router failed on gate ' + g.id);
+        commitPoints(r.pts);
+        commitMirrors(r.newMirrors, false);
+      }
+    }
+
+    // Pass 2: Primary outputs
+    for (const nm of outOrder) {
+      const w = net.outputs[nm];
+      const st = wireStart(w);
+      const op = outPos[nm];
+      const exitKey = pk3(st.x + st.vx, st.y + st.vy, st.t + 1);
+      const exitSp = pk2(st.x + st.vx, st.y + st.vy);
+      const hadProt = occProtected.delete(exitSp);
+      occST.delete(exitKey);
+      const r = buildRoute(st.x, st.y, st.vx, st.vy, st.t, op.x, op.y, op.vx, op.vy, op.t, occST, occSpace, occMirrors, occProtected);
+      occST.add(exitKey);
+      if (hadProt) occProtected.add(exitSp);
+      if (!r) throw new Error('Billiard router failed on output ' + nm);
+      commitPoints(r.pts);
+      commitMirrors(r.newMirrors, nm === 's_p' || nm === 's_m');
+    }
+
+    // Pass 3: CONST1 injectors (dx0=0 outer loop for instant straight/H-only placement)
+    const const1Injectors = [];
+    for (const { g, tgt } of const1Targets) {
+      const tgtKey = pk3(tgt.tx, tgt.ty, tgt.tt);
+      const preKey = pk3(tgt.tx - tgt.tvx, tgt.ty - tgt.tvy, tgt.tt - 1);
+      occST.delete(tgtKey); occST.delete(preKey);
+      const x0 = tgt.tx - tgt.tt;
+      const y0 = tgt.ty - tgt.tvy * tgt.tt;
+      let straightOk = true;
+      const pts = [];
+      for (let s = 0; s <= tgt.tt; s++) {
+        const cx = x0 + s, cy = y0 + tgt.tvy * s;
+        if (occMirrors.has(pk2(cx, cy)) || occProtected.has(pk2(cx, cy)) || occST.has(pk3(cx, cy, s))) {
+          straightOk = false; break;
+        }
+        pts.push({ x: cx, y: cy, t: s });
+      }
+      if (straightOk) {
+        commitPoints(pts);
+        const1Injectors.push({ x: x0, y: y0, vx: 1, vy: tgt.tvy });
+      } else {
+        let found = false;
+        for (let dx0 = 0; dx0 <= 20 && !found; dx0 += 2) {
+          for (let dy0 = 2; dy0 <= 120 && !found; dy0 += 2) {
+            for (const sgn of [1, -1]) {
+              const sx = x0 + dx0, sy = y0 + sgn * dy0;
+              if (occMirrors.has(pk2(sx, sy)) || occST.has(pk3(sx, sy, 0))) continue;
+              const r = buildRoute(sx, sy, 1, tgt.tvy, 0, tgt.tx, tgt.ty, tgt.tvx, tgt.tvy, tgt.tt, occST, occSpace, occMirrors, occProtected);
+              if (r) {
+                commitPoints([{ x: sx, y: sy, t: 0 }, ...r.pts]);
+                commitMirrors(r.newMirrors, false);
+                const1Injectors.push({ x: sx, y: sy, vx: 1, vy: tgt.tvy });
+                found = true; break;
+              }
+            }
+          }
+        }
+        if (!found) throw new Error('Billiard router failed on CONST1 for gate ' + g.id);
+      }
+      occST.add(tgtKey); occST.add(preKey);
+    }
+
+    const mirrorHT = buildMirrorHashTable(mirrorList);
+    return {
+      gateCount: net.gates.length,
+      gatePos,
+      inPos,
+      outPos,
+      outX,
+      outT,
+      mirrorList,
+      mirrorHT,
+      outputMirrorIdx: outputMirrorIdx >= 0 ? outputMirrorIdx : 0,
+      const1Injectors,
+    };
+  }
+
+  let _cachedBilliardLayout = null;
+  function getBilliardLayout() {
+    if (!_cachedBilliardLayout) {
+      const net = synthesizeFullAdderIGNetlist();
+      _cachedBilliardLayout = layoutOneTritAdder(net);
+    }
+    return _cachedBilliardLayout;
+  }
+
+  // Reusable scratch buffers for O(1)-clear open-addressing collision table (zero GC)
+  const COLL_SIZE = 256;
+  const COLL_MASK = COLL_SIZE - 1;
+  const _collKey = new Int32Array(COLL_SIZE);
+  const _collVal = new Int32Array(COLL_SIZE);
+  const _collStamp = new Int32Array(COLL_SIZE);
+  let _stampSeq = 0;
+
+  // Exact integer-lattice hard-sphere physics for one 1-trit full adder slice.
+  // ZERO floats anywhere in this function!
+  function simulateOneTritBilliards(layout, inBits, mirrorHT, recordTrace) {
+    const nC1 = layout.const1Injectors.length;
+    let nIn = 0;
+    for (let i = 0; i < 6; i++) if (inBits[i]) nIn++;
+    const n = nIn + nC1;
+    const bx = new Int32Array(n);
+    const by = new Int32Array(n);
+    const bvx = new Int32Array(n);
+    const bvy = new Int32Array(n);
+    let idx = 0;
+    for (let i = 0; i < 6; i++) {
+      if (inBits[i]) {
+        const ip = layout.inPos[i];
+        bx[idx] = ip.x; by[idx] = ip.y; bvx[idx] = ip.vx; bvy[idx] = ip.vy; idx++;
+      }
+    }
+    for (let i = 0; i < nC1; i++) {
+      const c = layout.const1Injectors[i];
+      bx[idx] = c.x; by[idx] = c.y; bvx[idx] = c.vx; bvy[idx] = c.vy; idx++;
+    }
+
+    const initEnergy = n * 2;
+    let energyConserved = true;
+    const nxArr = new Int32Array(n);
+    const nyArr = new Int32Array(n);
+    const handled = new Uint8Array(n);
+
+    const mMinX = mirrorHT.minX, mMaxX = mirrorHT.maxX;
+    const mMinY = mirrorHT.minY, mMaxY = mirrorHT.maxY;
+    const mStrideY = mirrorHT.strideY, mGrid = mirrorHT.grid;
+    const outT = layout.outT;
+    const trace = recordTrace ? [] : null;
+    let collisions = 0;
+
+    for (let t = 0; t < outT; t++) {
+      if (recordTrace && (t % 16 === 0 || t === outT - 1)) {
+        const snap = new Int32Array(n * 2);
+        for (let i = 0; i < n; i++) { snap[i * 2] = bx[i]; snap[i * 2 + 1] = by[i]; }
+        trace.push({ t, coords: snap });
+      }
+
+      _stampSeq++;
+      if (_stampSeq >= 0x7FFFFFF0) { _collStamp.fill(0); _stampSeq = 1; }
+      const stamp = _stampSeq;
+      handled.fill(0);
+
+      for (let i = 0; i < n; i++) {
+        const nx = bx[i] + bvx[i];
+        const ny = by[i] + bvy[i];
+        nxArr[i] = nx; nyArr[i] = ny;
+        const key = ((nx + 32768) << 16) | ((ny + 32768) & 0xFFFF);
+        let h = (Math.imul(key, 2654435761) >>> 24) & COLL_MASK;
+        while (_collStamp[h] === stamp && _collKey[h] !== key) h = (h + 1) & COLL_MASK;
+        if (_collStamp[h] !== stamp) {
+          _collStamp[h] = stamp;
+          _collKey[h] = key;
+          _collVal[h] = i;
+        } else {
+          // Exact integer 2-ball elastic hard-sphere collision
+          const j = _collVal[h];
+          handled[i] = 1; handled[j] = 1;
+          collisions++;
+          if (bvx[i] === bvx[j] && bvy[i] === -bvy[j]) {
+            bx[i] += bvx[i]; bvy[i] = -bvy[i];
+            bx[j] += bvx[j]; bvy[j] = -bvy[j];
+          } else if (bvy[i] === bvy[j] && bvx[i] === -bvx[j]) {
+            by[i] += bvy[i]; bvx[i] = -bvx[i];
+            by[j] += bvy[j]; bvx[j] = -bvx[j];
+          } else {
+            bvx[i] = -bvx[i]; bvy[i] = -bvy[i];
+            bvx[j] = -bvx[j]; bvy[j] = -bvy[j];
+          }
+        }
+      }
+
+      let energy = 0;
+      for (let i = 0; i < n; i++) {
+        if (!handled[i]) {
+          const nx = nxArr[i], ny = nyArr[i];
+          bx[i] = nx; by[i] = ny;
+          if (nx >= mMinX && nx <= mMaxX && ny >= mMinY && ny <= mMaxY) {
+            const mt = mGrid[(nx - mMinX) * mStrideY + (ny - mMinY)];
+            if (mt === 1) bvy[i] = -bvy[i];
+            else if (mt === 2) bvx[i] = -bvx[i];
+          }
+        }
+        energy += bvx[i] * bvx[i] + bvy[i] * bvy[i];
+      }
+      if (energy !== initEnergy) energyConserved = false;
+    }
+
+    // Read exit ports strictly from ball positions at t = outT
+    const outOrder = ['s_p', 's_m', 'co_p', 'co_m'];
+    const outBits = [0, 0, 0, 0];
+    for (let o = 0; o < 4; o++) {
+      const op = layout.outPos[outOrder[o]];
+      for (let i = 0; i < n; i++) {
+        if (bx[i] === op.x && by[i] === op.y) outBits[o] = 1;
+      }
+    }
+    return {
+      outBits,
+      ballCountStart: n,
+      ballCountEnd: n,
+      energyStart: initEnergy,
+      energyEnd: initEnergy,
+      energyConserved,
+      collisions,
+      ticks: outT,
+      trace,
+    };
+  }
+
+  function stage4_billiards(input, opts) {
+    const o = opts || {};
+    const sab = o.sabotage || {};
+    const recordTrace = !!o.recordTrace;
+    const layout = getBilliardLayout();
+
+    let mirrorHT = layout.mirrorHT;
+    if (sab.billiardsShiftMirror) {
+      // Sabotage: shift one active mirror by 1 lattice step (+1 in x)
+      const shifted = layout.mirrorList.map((m, idx) =>
+        idx === layout.outputMirrorIdx ? { x: m.x + 1, y: m.y, type: m.type } : m
+      );
+      mirrorHT = buildMirrorHashTable(shifted);
+    }
+
+    const a = input.aTrits;
+    const b = input.bTrits;
+    const width = Math.max(a.length, b.length, 1);
+    const sumTrits = [];
+    let carryP = 0, carryM = 0;
+    let totalBallsStart = 0, totalBallsEnd = 0;
+    let totalEnergyStart = 0, totalEnergyEnd = 0;
+    let energyConserved = true;
+    let totalTicks = 0, totalCollisions = 0;
+    const traces = recordTrace ? [] : null;
+
+    // Ripple carry across per-trit full adders (chained with path-length timing t_k = k * outT)
+    for (let k = 0; k < width; k++) {
+      const at = k < a.length ? a[k] : 0;
+      const bt = k < b.length ? b[k] : 0;
+      const inBits = [
+        at === 1 ? 1 : 0, at === -1 ? 1 : 0,
+        bt === 1 ? 1 : 0, bt === -1 ? 1 : 0,
+        carryP, carryM,
+      ];
+      const res = simulateOneTritBilliards(layout, inBits, mirrorHT, recordTrace && k === 0);
+      totalBallsStart += res.ballCountStart;
+      totalBallsEnd += res.ballCountEnd;
+      totalEnergyStart += res.energyStart;
+      totalEnergyEnd += res.energyEnd;
+      if (!res.energyConserved) energyConserved = false;
+      totalTicks += res.ticks;
+      totalCollisions += res.collisions;
+      if (recordTrace && k === 0) traces.push(res.trace);
+
+      const sp = res.outBits[0], sm = res.outBits[1];
+      sumTrits.push(sp - sm);
+      carryP = res.outBits[2];
+      carryM = res.outBits[3];
+    }
+    if (carryP || carryM) {
+      sumTrits.push(carryP - carryM);
+    }
+
+    return {
+      sumTrits: normalizeTrits(sumTrits),
+      tritsSimulated: width,
+      totalTicks,
+      totalCollisions,
+      ballCountStart: totalBallsStart,
+      ballCountEnd: totalBallsEnd,
+      energyStart: totalEnergyStart,
+      energyEnd: totalEnergyEnd,
+      ballCountConserved: totalBallsStart === totalBallsEnd,
+      energyConserved,
+      sampleTrace: traces ? traces[0] : null,
+    };
+  }
+
+  // =========================================================================
+  // 5. STAGE 5 — GLYPHS (JS Polygon AA Rasterizer) & THE READER (OCR)
+  // =========================================================================
+  const GLYPH_CELL_W = 18;
+  const GLYPH_CELL_H = 22;
+  const GLYPH_PAD = 4;
+
+  // Vector polygon definitions in normalized glyph coordinates [-1, 1] x [-1, 1]
+  // Each polygon is an array of [x, y] vertices; 'holes' carve interior voids.
+  const GLYPH_SHAPES = {
+    // Minus ('−'): bold horizontal bar with small end serifs
+    '-1': {
+      solids: [
+        [[-0.72, -0.18], [0.72, -0.18], [0.72, 0.18], [-0.72, 0.18]],
+      ],
+      holes: [],
+    },
+    // Zero ('0'): bold octagonal ring
+    '0': {
+      solids: [
+        [[-0.36, -0.78], [0.36, -0.78], [0.68, -0.44], [0.68, 0.44],
+         [0.36, 0.78], [-0.36, 0.78], [-0.68, 0.44], [-0.68, -0.44]],
+      ],
+      holes: [
+        [[-0.18, -0.44], [0.18, -0.44], [0.34, -0.24], [0.34, 0.24],
+         [0.18, 0.44], [-0.18, 0.44], [-0.34, 0.24], [-0.34, -0.24]],
+      ],
+    },
+    // Plus ('+'): bold symmetric cross
+    '1': {
+      solids: [
+        [[-0.72, -0.18], [0.72, -0.18], [0.72, 0.18], [-0.72, 0.18]],
+        [[-0.18, -0.72], [0.18, -0.72], [0.18, 0.72], [-0.18, 0.72]],
+      ],
+      holes: [],
+    },
+  };
+
+  function pointInPoly(px, py, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][0], yi = poly[i][1];
+      const xj = poly[j][0], yj = poly[j][1];
+      const intersect = ((yi > py) !== (yj > py)) &&
+        (px < ((xj - xi) * (py - yi)) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  function pointInGlyph(nx, ny, shape) {
+    let hit = false;
+    for (let i = 0; i < shape.solids.length; i++) {
+      if (pointInPoly(nx, ny, shape.solids[i])) { hit = true; break; }
+    }
+    if (!hit) return false;
+    for (let i = 0; i < shape.holes.length; i++) {
+      if (pointInPoly(nx, ny, shape.holes[i])) return false;
+    }
+    return true;
+  }
+
+  // Rasterize one glyph into buffer at (ox, oy) with 4x4 supersampling AA, rotation, and jitter
+  function rasterizeGlyphInto(pixels, imgW, ox, oy, cellW, cellH, shape, angleRad, jx, jy) {
+    const cosA = Math.cos(-angleRad);
+    const sinA = Math.sin(-angleRad);
+    const cx = cellW * 0.5 + jx;
+    const cy = cellH * 0.5 + jy;
+    const scaleX = cellW * 0.40;
+    const scaleY = cellH * 0.40;
+    const SS = 2;
+    const invSS = 1 / SS;
+    const invArea = 255 / (SS * SS);
+
+    for (let py = 0; py < cellH; py++) {
+      const rowOff = (oy + py) * imgW + ox;
+      for (let px = 0; px < cellW; px++) {
+        let cov = 0;
+        for (let sy = 0; sy < SS; sy++) {
+          const dy = (py + (sy + 0.5) * invSS - cy) / scaleY;
+          for (let sx = 0; sx < SS; sx++) {
+            const dx = (px + (sx + 0.5) * invSS - cx) / scaleX;
+            const rx = dx * cosA - dy * sinA;
+            const ry = dx * sinA + dy * cosA;
+            if (pointInGlyph(rx, ry, shape)) cov++;
+          }
+        }
+        const val = Math.round(cov * invArea);
+        if (val > pixels[rowOff + px]) pixels[rowOff + px] = val;
+      }
+    }
+  }
+
+  function stage5_rasterize(sumTrits, opts) {
+    const o = opts || {};
+    const seed = typeof o.seed === 'number' ? o.seed : 1;
+    const sab = o.sabotage || {};
+    const rng = makeRng(seed ^ 0x91FA5E);
+
+    const norm = normalizeTrits(sumTrits);
+    const count = norm.length;
+    const width = GLYPH_PAD * 2 + count * (GLYPH_CELL_W + GLYPH_PAD) - GLYPH_PAD;
+    const height = GLYPH_CELL_H + GLYPH_PAD * 2;
+    const pixels = new Uint8Array(width * height);
+
+    // Draw MSB-first (left to right)
+    for (let i = 0; i < count; i++) {
+      let trit = norm[count - 1 - i];
+      if (sab.rasterizerSwapGlyphs) {
+        if (trit === 1) trit = -1;
+        else if (trit === -1) trit = 1;
+      }
+      const shape = GLYPH_SHAPES[String(trit)];
+      const angle = (rng() * 2 - 1) * (4.0 * Math.PI / 180); // +/- 4 deg
+      const jx = (rng() * 2 - 1) * 0.8;
+      const jy = (rng() * 2 - 1) * 0.8;
+      const ox = GLYPH_PAD + i * (GLYPH_CELL_W + GLYPH_PAD);
+      rasterizeGlyphInto(pixels, width, ox, GLYPH_PAD, GLYPH_CELL_W, GLYPH_CELL_H, shape, angle, jx, jy);
+    }
+
+    // Add seeded pixel noise (+/- 10 gray levels)
+    for (let i = 0; i < pixels.length; i++) {
+      const noisy = pixels[i] + Math.round((rng() * 2 - 1) * 10);
+      pixels[i] = noisy < 0 ? 0 : (noisy > 255 ? 255 : noisy);
+    }
+
+    // Return ONLY the pixel buffer medium!
+    return { width, height, pixels };
+  }
+
+  // Reader (OCR): renders its OWN templates at startup and reads ONLY { width, height, pixels }!
+  let _readerTemplates = null;
+  function getReaderTemplates() {
+    if (!_readerTemplates) {
+      _readerTemplates = {};
+      for (const trit of [-1, 0, 1]) {
+        const buf = new Uint8Array(GLYPH_CELL_W * GLYPH_CELL_H);
+        rasterizeGlyphInto(buf, GLYPH_CELL_W, 0, 0, GLYPH_CELL_W, GLYPH_CELL_H, GLYPH_SHAPES[String(trit)], 0, 0, 0);
+        // Precompute zero-mean normalized template vector
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) sum += buf[i];
+        const mean = sum / buf.length;
+        const vec = new Float32Array(buf.length);
+        let normSq = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const d = buf[i] - mean;
+          vec[i] = d;
+          normSq += d * d;
+        }
+        _readerTemplates[trit] = { buf, vec, norm: Math.sqrt(normSq) };
+      }
+    }
+    return _readerTemplates;
+  }
+
+  function stage5_read(imageMedium, opts) {
+    const o = opts || {};
+    const sab = o.sabotage || {};
+    const { width, height, pixels } = imageMedium;
+    const rawTemplates = getReaderTemplates();
+
+    // Sabotage: swap two templates (0 and +1)
+    const templates = {
+      '-1': rawTemplates[-1],
+      '0':  sab.readerSwapTemplates ? rawTemplates[1] : rawTemplates[0],
+      '1':  sab.readerSwapTemplates ? rawTemplates[0] : rawTemplates[1],
+    };
+
+    // Step 1: Segment glyphs horizontally via vertical ink projection
+    const colInk = new Float32Array(width);
+    for (let x = 0; x < width; x++) {
+      let s = 0;
+      for (let y = 0; y < height; y++) {
+        const v = pixels[y * width + x];
+        if (v > 32) s += v;
+      }
+      colInk[x] = s;
+    }
+
+    const boxes = [];
+    let inGlyph = false;
+    let xStart = 0;
+    for (let x = 0; x < width; x++) {
+      if (!inGlyph && colInk[x] > 120) { inGlyph = true; xStart = x; }
+      else if (inGlyph && (colInk[x] <= 120 || x === width - 1)) {
+        const xEnd = colInk[x] > 120 ? x : x - 1;
+        if (xEnd - xStart >= 4) boxes.push({ x0: xStart, x1: xEnd });
+        inGlyph = false;
+      }
+    }
+
+    // Step 2: Template matching via zero-mean NCC over small (dx, dy) shifts
+    const recognizedMSB = [];
+    const confidences = [];
+    const labeledBoxes = [];
+    const tplKeys = [-1, 0, 1];
+
+    for (let b = 0; b < boxes.length; b++) {
+      const box = boxes[b];
+      const cx = Math.round((box.x0 + box.x1) * 0.5);
+      const cy = Math.round(height * 0.5);
+      let bestTrit = 0;
+      let bestScore = -2;
+
+      for (let k = 0; k < tplKeys.length; k++) {
+        const trit = tplKeys[k];
+        const tpl = templates[String(trit)];
+        let maxNcc = -2;
+        const cnt = GLYPH_CELL_W * GLYPH_CELL_H;
+        const tplVec = tpl.vec;
+        const tplNorm = tpl.norm;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const ox = cx - (GLYPH_CELL_W >> 1) + dx;
+            const oy = cy - (GLYPH_CELL_H >> 1) + dy;
+            let sumP = 0, sumP2 = 0, dot = 0;
+            for (let y = 0; y < GLYPH_CELL_H; y++) {
+              const py = oy + y;
+              if (py < 0 || py >= height) continue;
+              const row = py * width;
+              const tRow = y * GLYPH_CELL_W;
+              for (let x = 0; x < GLYPH_CELL_W; x++) {
+                const px = ox + x;
+                if (px >= 0 && px < width) {
+                  const val = pixels[row + px];
+                  sumP += val;
+                  sumP2 += val * val;
+                  dot += val * tplVec[tRow + x];
+                }
+              }
+            }
+            const varP = sumP2 - (sumP * sumP) / cnt;
+            const denom = varP > 1e-6 ? Math.sqrt(varP) * tplNorm : 0;
+            const ncc = denom > 1e-6 ? dot / denom : 0;
+            if (ncc > maxNcc) maxNcc = ncc;
+          }
+        }
+        if (maxNcc > bestScore) { bestScore = maxNcc; bestTrit = trit; }
+      }
+
+      recognizedMSB.push(bestTrit);
+      confidences.push(bestScore);
+      labeledBoxes.push({ x0: box.x0, x1: box.x1, trit: bestTrit, score: bestScore });
+    }
+
+    // Convert MSB-first recognized trits to canonical LSB-first array
+    const sumTrits = normalizeTrits(recognizedMSB.slice().reverse());
+    const displayText = tritsToPretty(sumTrits);
+    const asciiText = tritsToString(sumTrits);
+
+    return {
+      sumTrits,
+      displayText,
+      asciiText,
+      boxes: labeledBoxes,
+      confidences,
+    };
+  }
+
+  // =========================================================================
+  // Full 5-Stage Pipeline Runner (each stage receives ONLY previous medium)
+  // =========================================================================
+  function runPipeline(aTrits, bTrits, opts) {
+    const o = opts || {};
+    const sab = o.sabotage || {};
+    const snrDb = typeof o.snrDb === 'number' ? o.snrDb : 10;
+    const seed = typeof o.seed === 'number' ? o.seed : 1;
+    const now = typeof performance !== 'undefined' && performance.now ? () => performance.now() : () => Date.now();
+
+    const t1 = now();
+    const audio = stage1_tritone({ aTrits, bTrits }, { snrDb, seed, sabotage: sab });
+    const d1 = now() - t1;
+
+    const t2 = now();
+    const ear = stage2_ear(audio, { sabotage: sab });
+    const d2 = now() - t2;
+
+    const t3 = now();
+    const hanoi = stage3_hanoi({ aTrits: ear.aTrits, bTrits: ear.bTrits }, { sabotage: sab, recordMoves: !!o.recordMoves });
+    const d3 = now() - t3;
+
+    const t4 = now();
+    const bbc = stage4_billiards({ aTrits: hanoi.aTrits, bTrits: hanoi.bTrits }, { sabotage: sab, recordTrace: !!o.recordTrace });
+    const d4 = now() - t4;
+
+    const t5a = now();
+    const img = stage5_rasterize(bbc.sumTrits, { seed, sabotage: sab });
+    const d5a = now() - t5a;
+
+    const t5b = now();
+    const reader = stage5_read(img, { sabotage: sab });
+    const d5b = now() - t5b;
+
+    return {
+      audio, ear, hanoi, bbc, img, reader,
+      timings: { tritone: d1, ear: d2, hanoi: d3, billiards: d4, rasterizer: d5a, reader: d5b },
+    };
+  }
+
+  root.LongWayCore = {
+    makeRng,
+    normalizeTrits,
+    tritsEqual,
+    tritsToString,
+    tritsToPretty,
+    stringToTrits,
+    Oracle,
+    AUDIO_SR,
+    AUDIO_FREQS,
+    stage1_tritone,
+    stage2_ear,
+    stage3_hanoi,
+    hanoiApplyLegalMove,
+    hanoiReachPosition,
+    hanoiReadPegs,
+    getBilliardLayout,
+    stage4_billiards,
+    stage5_rasterize,
+    stage5_read,
+    runPipeline,
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : window);
+</script>
+
+<script id="ui">
+/* INLINE: ui — browser-only WebAudio playback, live stage canvases, keypads, and receipts (authored for long-way-round.html) */
+(function () {
+  'use strict';
+  const Core = window.LongWayCore;
+  const MAX_TRITS = 9;
+
+  const state = {
+    aMSB: [1, -1, 0, 1], // +19 in balanced ternary
+    bMSB: [1, 1, -1],    // +11 in balanced ternary
+    lastAudio: null,
+    audioCtx: null,
+    animHandles: [],
+  };
+
+  function msbToLsb(msb) {
+    if (!msb.length) return [0];
+    return Core.normalizeTrits(msb.slice().reverse());
+  }
+
+  function renderKeypads() {
+    const aLsb = msbToLsb(state.aMSB);
+    const bLsb = msbToLsb(state.bMSB);
+    document.getElementById('disp-a').textContent = Core.tritsToPretty(aLsb);
+    document.getElementById('disp-b').textContent = Core.tritsToPretty(bLsb);
+    document.getElementById('dec-a').textContent = '= ' + Core.Oracle.tritsToBigInt(aLsb).toString();
+    document.getElementById('dec-b').textContent = '= ' + Core.Oracle.tritsToBigInt(bLsb).toString();
+  }
+
+  // Keypad handlers
+  document.querySelectorAll('button[data-op]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const op = btn.dataset.op;
+      const arr = op === 'a' ? state.aMSB : state.bMSB;
+      if (btn.dataset.trit !== undefined) {
+        if (arr.length < MAX_TRITS) {
+          if (arr.length === 1 && arr[0] === 0) arr[0] = Number(btn.dataset.trit);
+          else arr.push(Number(btn.dataset.trit));
+        }
+      } else if (btn.dataset.act === 'bksp') {
+        arr.pop();
+        if (arr.length === 0) arr.push(0);
+      } else if (btn.dataset.act === 'clear') {
+        arr.length = 0; arr.push(0);
+      } else if (btn.dataset.act === 'rand') {
+        arr.length = 0;
+        const len = 1 + Math.floor(Math.random() * MAX_TRITS);
+        for (let i = 0; i < len; i++) arr.push(Math.floor(Math.random() * 3) - 1);
+      }
+      renderKeypads();
+    });
+  });
+
+  // Presets
+  document.getElementById('preset-sample').addEventListener('click', () => {
+    state.aMSB = [1, -1, 0, 1];
+    state.bMSB = [1, 1, -1];
+    renderKeypads();
+  });
+  document.getElementById('preset-max').addEventListener('click', () => {
+    state.aMSB = [1, 1, 1, 1, 1, 1, 1, 1, 1];
+    state.bMSB = [1, 1, 1, 1, 1, 1, 1, 1, 1];
+    renderKeypads();
+  });
+  document.getElementById('preset-cancel').addEventListener('click', () => {
+    state.aMSB = [1, -1, 1, 0, -1, 1];
+    state.bMSB = [-1, 1, -1, 0, 1, -1];
+    renderKeypads();
+  });
+  document.getElementById('preset-zero').addEventListener('click', () => {
+    state.aMSB = [0];
+    state.bMSB = [0];
+    renderKeypads();
+  });
+
+  const snrInput = document.getElementById('snr-input');
+  const snrVal = document.getElementById('snr-val');
+  snrInput.addEventListener('input', () => { snrVal.textContent = snrInput.value + ' dB'; });
+
+  function getSabotage() {
+    return {
+      tritoneSwapMidHigh: document.getElementById('sab-tritone').checked,
+      earDetuneBin: document.getElementById('sab-ear').checked,
+      hanoiIllegalMove: document.getElementById('sab-hanoi').checked,
+      billiardsShiftMirror: document.getElementById('sab-billiards').checked,
+      rasterizerSwapGlyphs: document.getElementById('sab-raster').checked,
+      readerSwapTemplates: document.getElementById('sab-reader').checked,
+    };
+  }
+
+  function playSamples(audio) {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!state.audioCtx) state.audioCtx = new AC();
+      if (state.audioCtx.state === 'suspended') state.audioCtx.resume();
+      const buf = state.audioCtx.createBuffer(1, audio.samples.length, audio.sampleRate);
+      const ch = buf.getChannelData(0);
+      let peak = 1;
+      for (let i = 0; i < audio.samples.length; i++) {
+        const a = Math.abs(audio.samples[i]);
+        if (a > peak) peak = a;
+      }
+      const gain = 0.25 / peak;
+      for (let i = 0; i < audio.samples.length; i++) ch[i] = audio.samples[i] * gain;
+      const src = state.audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(state.audioCtx.destination);
+      src.start();
+    } catch (_) {
+      // Ignore autoplay restrictions in headless environments
+    }
+  }
+
+  document.getElementById('replay-audio').addEventListener('click', () => {
+    if (state.lastAudio) playSamples(state.lastAudio);
+  });
+
+  function clearAnims() {
+    for (const id of state.animHandles) cancelAnimationFrame(id);
+    state.animHandles = [];
+  }
+
+  // --- Stage 1 & 2 Canvas: Waveform + Goertzel Spectrum ---
+  function drawAudioCanvas(audio, ear) {
+    const cv = document.getElementById('cv-audio');
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.fillStyle = '#070b10';
+    ctx.fillRect(0, 0, W, H);
+
+    // Top half: Waveform
+    const waveH = 88;
+    ctx.strokeStyle = '#1e293b';
+    ctx.beginPath(); ctx.moveTo(0, waveH / 2); ctx.lineTo(W, waveH / 2); ctx.stroke();
+
+    const samples = audio.samples;
+    const step = Math.max(1, Math.floor(samples.length / W));
+    let maxAmp = 1;
+    for (let i = 0; i < samples.length; i += step) {
+      const v = Math.abs(samples[i]);
+      if (v > maxAmp) maxAmp = v;
+    }
+    ctx.strokeStyle = '#22d3ee';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let x = 0; x < W; x++) {
+      const idx = Math.min(samples.length - 1, Math.floor((x / W) * samples.length));
+      const y = waveH / 2 - (samples[idx] / maxAmp) * (waveH * 0.42);
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Bottom half: Goertzel spectrogram (frame x bin)
+    const specY = 98, specH = H - specY - 14;
+    const binNames = ['NEG', 'ZERO', 'POS', 'SEP', 'END'];
+    const binColors = { NEG: '#f43f5e', ZERO: '#94a3b8', POS: '#10b981', SEP: '#f59e0b', END: '#a78bfa' };
+    const frames = ear.frames || [];
+    if (frames.length > 0) {
+      const colW = (W - 52) / frames.length;
+      const rowH = specH / binNames.length;
+      for (let f = 0; f < frames.length; f++) {
+        let maxP = 1e-6;
+        for (const bn of binNames) maxP = Math.max(maxP, frames[f].powers[bn] || 0);
+        for (let r = 0; r < binNames.length; r++) {
+          const bn = binNames[r];
+          const norm = Math.sqrt((frames[f].powers[bn] || 0) / maxP);
+          ctx.fillStyle = bn === frames[f].sym ? binColors[bn] : 'rgba(34,211,238,' + (norm * 0.35).toFixed(2) + ')';
+          ctx.fillRect(48 + f * colW + 1, specY + r * rowH + 1, Math.max(2, colW - 2), rowH - 2);
+        }
+      }
+      ctx.fillStyle = '#8b9db5';
+      ctx.font = '10px monospace';
+      for (let r = 0; r < binNames.length; r++) {
+        ctx.fillText(binNames[r], 4, specY + r * rowH + rowH * 0.72);
+      }
+    }
+  }
+
+  // --- Stage 3 Canvas: Tower of Hanoi (A and B pegs) ---
+  function drawHanoiState(pegsA, pegsB, label) {
+    const cv = document.getElementById('cv-hanoi');
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.fillStyle = '#070b10';
+    ctx.fillRect(0, 0, W, H);
+
+    function drawTower(pegs, ox, width, title) {
+      ctx.fillStyle = '#8b9db5';
+      ctx.font = '11px monospace';
+      ctx.fillText(title, ox + 8, 16);
+      const baseY = H - 22;
+      ctx.fillStyle = '#253447';
+      ctx.fillRect(ox + 10, baseY, width - 20, 4);
+      const pegLabels = ['\u2212', '0', '+'];
+      const pegColors = ['#f43f5e', '#94a3b8', '#10b981'];
+      for (let p = 0; p < 3; p++) {
+        const px = ox + width * (0.18 + p * 0.32);
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(px - 2, 34, 4, baseY - 34);
+        ctx.fillStyle = pegColors[p];
+        ctx.font = '11px monospace';
+        ctx.fillText(pegLabels[p], px - 4, H - 7);
+
+        const stack = pegs[p];
+        for (let i = 0; i < stack.length; i++) {
+          const d = stack[i];
+          const dw = 14 + d * 6;
+          const dh = 11;
+          const dy = baseY - (i + 1) * (dh + 2);
+          ctx.fillStyle = p === 0 ? '#fb7185' : (p === 2 ? '#34d399' : '#60a5fa');
+          ctx.fillRect(px - dw / 2, dy, dw, dh);
+        }
+      }
+    }
+
+    drawTower(pegsA, 0, W / 2, 'Operand A');
+    ctx.strokeStyle = '#1e293b';
+    ctx.beginPath(); ctx.moveTo(W / 2, 10); ctx.lineTo(W / 2, H - 10); ctx.stroke();
+    drawTower(pegsB, W / 2, W / 2, 'Operand B');
+    if (label) {
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '10px monospace';
+      ctx.fillText(label, W / 2 - 42, 16);
+    }
+  }
+
+  function animateHanoi(hanoi) {
+    // Replay A's moves smoothly (subsampled if > 90 moves), then show final pegs
+    const pegsA = [[8, 7, 6, 5, 4, 3, 2, 1, 0], [], []];
+    const moves = hanoi.aMoves || [];
+    if (moves.length === 0) {
+      drawHanoiState(hanoi.aPegs, hanoi.bPegs, 'final');
+      return;
+    }
+    let idx = 0;
+    const perFrame = Math.max(1, Math.ceil(moves.length / 45));
+    function step() {
+      for (let k = 0; k < perFrame && idx < moves.length; k++, idx++) {
+        const mv = moves[idx];
+        if (mv[3] === 'ILLEGAL') {
+          const d = pegsA[mv[0]].shift();
+          pegsA[mv[1]].push(d);
+        } else {
+          const d = pegsA[mv[0]].pop();
+          pegsA[mv[1]].push(d);
+        }
+      }
+      if (idx < moves.length) {
+        drawHanoiState(pegsA, hanoi.bPegs, 'move ' + idx + '/' + moves.length);
+        state.animHandles.push(requestAnimationFrame(step));
+      } else {
+        drawHanoiState(hanoi.aPegs, hanoi.bPegs, hanoi.legal ? 'legal' : 'ILLEGAL');
+      }
+    }
+    state.animHandles.push(requestAnimationFrame(step));
+  }
+
+  // --- Stage 4 Canvas: Billiard-Ball Computer ---
+  function animateBilliards(bbc) {
+    const cv = document.getElementById('cv-billiards');
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    const layout = Core.getBilliardLayout();
+    const trace = bbc.sampleTrace || [];
+
+    // Map lattice bounds [0..outX] x [-120..120] to canvas
+    const minX = -30, maxX = layout.outX + 30;
+    const minY = -120, maxY = 120;
+    const sx = W / (maxX - minX);
+    const sy = H / (maxY - minY);
+    function tx(x) { return (x - minX) * sx; }
+    function ty(y) { return (y - minY) * sy; }
+
+    function drawFrame(frameIdx) {
+      ctx.fillStyle = '#070b10';
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle lattice grid
+      ctx.strokeStyle = 'rgba(37,52,71,0.35)';
+      ctx.lineWidth = 1;
+      for (let gx = 0; gx <= layout.outX; gx += 72) {
+        ctx.beginPath(); ctx.moveTo(tx(gx), 0); ctx.lineTo(tx(gx), H); ctx.stroke();
+      }
+
+      // Draw mirrors (H = amber horizontal bar, V = cyan vertical bar)
+      for (let i = 0; i < layout.mirrorList.length; i++) {
+        const m = layout.mirrorList[i];
+        const mx = tx(m.x), my = ty(m.y);
+        if (mx < -4 || mx > W + 4 || my < -4 || my > H + 4) continue;
+        ctx.fillStyle = m.type === 1 ? '#f59e0b' : '#38bdf8';
+        if (m.type === 1) ctx.fillRect(mx - 2.5, my - 0.8, 5, 1.6);
+        else ctx.fillRect(mx - 0.8, my - 2.5, 1.6, 5);
+      }
+
+      // Draw IG gate markers
+      ctx.fillStyle = 'rgba(167,139,250,0.55)';
+      for (let i = 0; i < layout.gatePos.length; i++) {
+        const g = layout.gatePos[i];
+        ctx.fillRect(tx(g.gx) - 1.5, ty(g.gy) - 1.5, 3, 3);
+      }
+
+      // Draw exit ports
+      const outNames = ['s_p', 's_m', 'co_p', 'co_m'];
+      for (const nm of outNames) {
+        const op = layout.outPos[nm];
+        ctx.strokeStyle = '#10b981';
+        ctx.beginPath();
+        ctx.arc(tx(op.x), ty(op.y), 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Draw balls
+      if (trace.length > 0) {
+        const snap = trace[Math.min(frameIdx, trace.length - 1)];
+        const coords = snap.coords;
+        ctx.fillStyle = '#22d3ee';
+        for (let i = 0; i < coords.length; i += 2) {
+          const bx = tx(coords[i]), by = ty(coords[i + 1]);
+          if (bx < -4 || bx > W + 4 || by < -4 || by > H + 4) continue;
+          ctx.beginPath();
+          ctx.arc(bx, by, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = '#8b9db5';
+        ctx.font = '10px monospace';
+        ctx.fillText('Trit 0 slice · tick ' + snap.t + '/' + layout.outT + ' · ' + layout.gateCount + ' IG gates · ' + layout.mirrorList.length + ' mirrors', 8, 14);
+      }
+    }
+
+    let f = 0;
+    function step() {
+      drawFrame(f);
+      f++;
+      if (f < trace.length) {
+        state.animHandles.push(requestAnimationFrame(step));
+      }
+    }
+    if (trace.length > 0) state.animHandles.push(requestAnimationFrame(step));
+    else drawFrame(0);
+  }
+
+  // --- Stage 5 Canvas: Rasterized Pixel Buffer + OCR Boxes ---
+  function drawOcrCanvas(img, reader) {
+    const cv = document.getElementById('cv-ocr');
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.fillStyle = '#070b10';
+    ctx.fillRect(0, 0, W, H);
+
+    // Draw the exact Uint8Array pixel buffer scaled crisply into the canvas
+    const off = document.createElement('canvas');
+    off.width = img.width;
+    off.height = img.height;
+    const octx = off.getContext('2d');
+    const idata = octx.createImageData(img.width, img.height);
+    for (let i = 0; i < img.pixels.length; i++) {
+      const v = img.pixels[i];
+      idata.data[i * 4] = v;
+      idata.data[i * 4 + 1] = Math.min(255, Math.round(v * 1.05));
+      idata.data[i * 4 + 2] = Math.min(255, Math.round(v * 1.15));
+      idata.data[i * 4 + 3] = 255;
+    }
+    octx.putImageData(idata, 0, 0);
+
+    const scale = Math.min((W - 24) / img.width, (H - 76) / img.height, 3.2);
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+    const ox = Math.floor((W - dw) / 2);
+    const oy = 24;
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(off, ox, oy, dw, dh);
+    ctx.strokeStyle = '#253447';
+    ctx.strokeRect(ox, oy, dw, dh);
+
+    // Overlay OCR bounding boxes & recognized symbols
+    ctx.font = '12px monospace';
+    for (const box of reader.boxes) {
+      const bx = ox + box.x0 * scale;
+      const bw = (box.x1 - box.x0 + 1) * scale;
+      ctx.strokeStyle = '#10b981';
+      ctx.strokeRect(bx, oy + 2, bw, dh - 4);
+      const sym = box.trit === -1 ? '\u2212' : (box.trit === 1 ? '+' : '0');
+      ctx.fillStyle = '#10b981';
+      ctx.fillText(sym, bx + bw / 2 - 4, oy + dh + 18);
+      ctx.fillStyle = '#8b9db5';
+      ctx.font = '10px monospace';
+      ctx.fillText(box.score.toFixed(2), bx + bw / 2 - 11, oy + dh + 33);
+      ctx.font = '12px monospace';
+    }
+  }
+
+  // --- Receipts Panel ---
+  function renderReceipts(aTrits, bTrits, run) {
+    const oracleSum = Core.Oracle.add(aTrits, bTrits);
+    const rows = [
+      {
+        stage: '1. Tritone',
+        medium: 'A=' + Core.tritsToPretty(aTrits) + ', B=' + Core.tritsToPretty(bTrits),
+        output: run.audio.samples.length + ' Float32 @ ' + run.audio.sampleRate + ' Hz',
+        ms: run.timings.tritone,
+        ok: Core.tritsEqual(Core.stage2_ear(run.audio, {}).aTrits, aTrits) &&
+            Core.tritsEqual(Core.stage2_ear(run.audio, {}).bTrits, bTrits),
+      },
+      {
+        stage: '2. The Ear',
+        medium: 'Float32Array[' + run.audio.samples.length + ']',
+        output: 'A=' + Core.tritsToPretty(run.ear.aTrits) + ', B=' + Core.tritsToPretty(run.ear.bTrits),
+        ms: run.timings.ear,
+        ok: Core.tritsEqual(run.ear.aTrits, aTrits) && Core.tritsEqual(run.ear.bTrits, bTrits),
+      },
+      {
+        stage: '3. Hanoi',
+        medium: 'Ear trits -> 9-disc pegs',
+        output: 'A=' + Core.tritsToPretty(run.hanoi.aTrits) + ', B=' + Core.tritsToPretty(run.hanoi.bTrits) +
+                ' (' + (run.hanoi.aMoveCount + run.hanoi.bMoveCount) + ' moves)',
+        ms: run.timings.hanoi,
+        ok: run.hanoi.legal &&
+            Core.tritsEqual(run.hanoi.aTrits, aTrits) &&
+            Core.tritsEqual(run.hanoi.bTrits, bTrits),
+      },
+      {
+        stage: '4. Billiards',
+        medium: 'Hanoi trits -> dual-rail balls',
+        output: Core.tritsToPretty(run.bbc.sumTrits) + ' (' + run.bbc.totalTicks + ' ticks, ' + run.bbc.totalCollisions + ' collisions)',
+        ms: run.timings.billiards,
+        ok: run.bbc.ballCountConserved && run.bbc.energyConserved &&
+            Core.tritsEqual(run.bbc.sumTrits, oracleSum),
+      },
+      {
+        stage: '5a. Rasterizer',
+        medium: 'Billiard sum trits',
+        output: run.img.width + 'x' + run.img.height + ' Uint8Array',
+        ms: run.timings.rasterizer,
+        ok: Core.tritsEqual(Core.stage5_read(run.img, {}).sumTrits, oracleSum),
+      },
+      {
+        stage: '5b. Reader (OCR)',
+        medium: 'Uint8Array[' + run.img.pixels.length + ']',
+        output: run.reader.displayText + ' (= ' + Core.Oracle.tritsToBigInt(run.reader.sumTrits).toString() + ')',
+        ms: run.timings.reader,
+        ok: Core.tritsEqual(run.reader.sumTrits, oracleSum),
+      },
+    ];
+
+    const tbody = document.getElementById('receipts-body');
+    tbody.innerHTML = '';
+    let allOk = true;
+    for (const r of rows) {
+      if (!r.ok) allOk = false;
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + r.stage + '</td>' +
+        '<td>' + r.medium + '</td>' +
+        '<td>' + r.output + '</td>' +
+        '<td>' + r.ms.toFixed(2) + ' ms</td>' +
+        '<td><span class="pill ' + (r.ok ? 'pill-ok">AGREE' : 'pill-bad">DISAGREE') + '</span></td>';
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById('answer-status').textContent = allOk ? 'All stages agreed with oracle' : 'Stage disagreement detected';
+    document.getElementById('answer-note').textContent = 'Oracle check: ' + Core.tritsToPretty(oracleSum) + ' (' + Core.Oracle.tritsToBigInt(oracleSum).toString() + ')';
+  }
+
+  function runLongWay() {
+    clearAnims();
+    const aTrits = msbToLsb(state.aMSB);
+    const bTrits = msbToLsb(state.bMSB);
+    const snrDb = Number(snrInput.value);
+    const seed = Number(document.getElementById('seed-input').value) || 1;
+    const sabotage = getSabotage();
+
+    const run = Core.runPipeline(aTrits, bTrits, {
+      snrDb,
+      seed,
+      sabotage,
+      recordMoves: true,
+      recordTrace: true,
+    });
+
+    // SINGLE WRITE SITE for the final answer element — strictly from Reader's return value!
+    document.getElementById('final-answer').textContent = run.reader.displayText;
+
+    state.lastAudio = run.audio;
+    document.getElementById('replay-audio').disabled = false;
+    if (document.getElementById('audio-play').checked) {
+      playSamples(run.audio);
+    }
+
+    // Update live stage visualizations
+    drawAudioCanvas(run.audio, run.ear);
+    document.getElementById('foot-tritone').textContent = 'Samples: ' + run.audio.samples.length + ' (' + snrDb + ' dB SNR)';
+    document.getElementById('foot-ear').textContent = 'Decoded: A=' + Core.tritsToPretty(run.ear.aTrits) + ', B=' + Core.tritsToPretty(run.ear.bTrits);
+
+    animateHanoi(run.hanoi);
+    document.getElementById('foot-hanoi-moves').textContent = 'Moves: A=' + run.hanoi.aMoveCount + ', B=' + run.hanoi.bMoveCount;
+    document.getElementById('foot-hanoi-read').textContent = 'Read: A=' + Core.tritsToPretty(run.hanoi.aTrits) + ', B=' + Core.tritsToPretty(run.hanoi.bTrits);
+
+    animateBilliards(run.bbc);
+    document.getElementById('foot-bbc-phys').textContent = 'Balls: ' + run.bbc.ballCountStart + '->' + run.bbc.ballCountEnd + ' | E: ' + run.bbc.energyStart + '->' + run.bbc.energyEnd;
+    document.getElementById('foot-bbc-out').textContent = 'Exit ports: ' + Core.tritsToPretty(run.bbc.sumTrits);
+
+    drawOcrCanvas(run.img, run.reader);
+    document.getElementById('foot-raster').textContent = 'Buffer: ' + run.img.width + 'x' + run.img.height + ' grayscale';
+    document.getElementById('foot-reader').textContent = 'OCR: ' + run.reader.displayText;
+
+    renderReceipts(aTrits, bTrits, run);
+  }
+
+  document.getElementById('go-btn').addEventListener('click', runLongWay);
+  renderKeypads();
+})();
+</script>
+</body>
+</html>
