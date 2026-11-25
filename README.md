@@ -12,8 +12,10 @@ through five media instead, and every stage may read only its own medium:
 5. **The Reader:** the answer is drawn as jittery glyphs and read back by an OCR. The number shown is the OCR's
    reading and nothing else.
 
-A ConsciousNode SoftWorks goof, built by Gemini Neon from `SPEC.md` in one shot. Open
-`delivery-1/long-way-round.html` in a browser. Nothing to install.
+A ConsciousNode SoftWorks goof, built by Gemini Neon from `SPEC.md` in one shot.
+
+**Play it:** https://consciousnode.github.io/Long-Way-Round/delivery-1/long-way-round.html (or open
+`delivery-1/long-way-round.html` from a clone; nothing to install).
 
 - `SPEC.md`: the request, exactly as sent, committed before the delivery arrived.
 - `delivery-1/`: the delivery as received (`ARRIVED-1.md` has the hashes).
