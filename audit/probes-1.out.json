@@ -1,0 +1,69 @@
+{
+ "A_slice_truth_table": {
+  "cases": 27,
+  "mismatches": 0,
+  "collisions_min": 6,
+  "collisions_max": 33
+ },
+ "B_no_collisions": {
+  "cases_wrong": 21,
+  "of": 27
+ },
+ "C_no_const1": {
+  "cases_wrong": 20,
+  "of": 27
+ },
+ "D_random_mirror_shifts": {
+  "shifted": 60,
+  "broke_some_case": 60,
+  "of_mirrors": 469
+ },
+ "E_history_dependence": {
+  "differing_results": 0
+ },
+ "F_ball_count_check": {
+  "end_count_is_start_variable": true,
+  "energy_end_is_start_variable": true
+ },
+ "G_noise_floor": [
+  {
+   "snr_db": -10,
+   "pair_errors": 2,
+   "of": 200
+  },
+  {
+   "snr_db": -12,
+   "pair_errors": 19,
+   "of": 200
+  },
+  {
+   "snr_db": -14,
+   "pair_errors": 83,
+   "of": 200
+  },
+  {
+   "snr_db": -16,
+   "pair_errors": 174,
+   "of": 200
+  },
+  {
+   "snr_db": -18,
+   "pair_errors": 198,
+   "of": 200
+  },
+  {
+   "snr_db": -20,
+   "pair_errors": 199,
+   "of": 200
+  },
+  {
+   "snr_db": -25,
+   "pair_errors": 200,
+   "of": 200
+  }
+ ],
+ "H_all_3trit_pairs": {
+  "pairs": 729,
+  "wrong": 0
+ }
+}
