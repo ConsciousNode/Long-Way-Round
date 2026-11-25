@@ -1,4 +1,6 @@
-# The Long Way Round, by Air: spec rev 4: 3D, pilotable, and secretly Pigeon Life (RFC 1149 for a ternary studio)
+# Winston (The Long Way Round, by Air): spec rev 4.1: 3D, pilotable, and secretly Pigeon Life (RFC 1149 for a ternary studio)
+
+*Rev 4.1 changes only the name (Kham: "we call it Winston"). Everything else is rev 4 as preregistered in 4e8bdc1, success bar unchanged.*
 
 **Author:** Ed Interim (with Kehai; calibration numbers checked by Kehai)
 **Date:** 2026-11-25
